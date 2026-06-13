@@ -830,4 +830,3 @@ if (_origToDeck) _origToDeck.addEventListener("click", async () => {
   if (!S.assetClasses.length) await loadTabs();
   await loadDeck();
 });
-

@@ -42,7 +42,7 @@ SWIPE_HALFLIFE_S = 3600.0
 # swipe was and by time decay — see effective_vector). It is a unit-direction step,
 # not proportional to the raw distance to the instrument, so a pass on a high-match
 # card actually shifts the profile instead of vanishing.
-SWIPE_LR = 0.45
+SWIPE_LR = 0.15
 # Blend weights for the final score. The collaborative term is downweighted: in
 # this demo it is entirely persona-basket-derived (the basket signal uses the
 # hand-authored baskets directly, and the same-persona crowd signal aggregates
