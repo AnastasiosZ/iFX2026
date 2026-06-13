@@ -148,6 +148,72 @@ QUESTIONS: list[dict] = [
             },
         ],
     },
+    {
+        "id": "checking_frequency",
+        "prompt": "How often do you check your portfolio?",
+        "options": [
+            {
+                "label": "Constantly — several times a day",
+                "deltas": {"impulsivity": 0.3, "patience": -0.25, "confidence": 0.1},
+            },
+            {
+                "label": "Once a day or so",
+                "deltas": {"impulsivity": 0.1},
+            },
+            {
+                "label": "A few times a month",
+                "deltas": {"patience": 0.25, "discipline": 0.15},
+            },
+            {
+                "label": "Almost never — I set and forget",
+                "deltas": {"patience": 0.4, "discipline": 0.3, "impulsivity": -0.3},
+            },
+        ],
+    },
+    {
+        "id": "loss_reaction",
+        "prompt": "A position is down 30% but your thesis hasn't changed. You...",
+        "options": [
+            {
+                "label": "Average down — conviction unchanged",
+                "deltas": {"confidence": 0.3, "contrarian_tendency": 0.25, "risk_tolerance": 0.25},
+            },
+            {
+                "label": "Hold, but stop adding",
+                "deltas": {"discipline": 0.25, "patience": 0.2},
+            },
+            {
+                "label": "Trim to reduce the pain",
+                "deltas": {"risk_aversion": 0.25, "impulsivity": 0.15},
+            },
+            {
+                "label": "Exit — protect what's left",
+                "deltas": {"risk_aversion": 0.35, "risk_tolerance": -0.3, "impulsivity": 0.2},
+            },
+        ],
+    },
+    {
+        "id": "info_source",
+        "prompt": "Where do most of your investment ideas come from?",
+        "options": [
+            {
+                "label": "My own research and models",
+                "deltas": {"analytical_depth": 0.4, "contrarian_tendency": 0.2, "herd_mentality": -0.25},
+            },
+            {
+                "label": "Trusted analysts and newsletters",
+                "deltas": {"analytical_depth": 0.2, "discipline": 0.1},
+            },
+            {
+                "label": "Social media and online communities",
+                "deltas": {"herd_mentality": 0.35, "impulsivity": 0.2, "analytical_depth": -0.15},
+            },
+            {
+                "label": "Friends, family, and word of mouth",
+                "deltas": {"herd_mentality": 0.3, "analytical_depth": -0.1},
+            },
+        ],
+    },
 ]
 
 

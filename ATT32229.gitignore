@@ -11,6 +11,10 @@ env/
 # Generated data cache (rebuilt via `python -m backend.build_instruments`)
 data/instruments.json
 
+# Local SQLite database (users/likes/recommendations; reseeded on first run)
+data/finter.db
+data/finter.db-*
+
 # Editor / OS
 .DS_Store
 Thumbs.db

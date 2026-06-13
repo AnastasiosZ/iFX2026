@@ -74,6 +74,20 @@
       <div id="persona-cards"></div>
       <canvas id="radar" width="280" height="280"></canvas>
       <button class="primary" id="to-deck-btn">Start swiping →</button>
+      <button class="link-btn" id="logout-btn">Sign out</button>
+    </section>
+
+    <!-- SCREEN: Scenario quizzes (second-stage refinement) -->
+    <section class="screen" id="screen-scenarios">
+      <h2>Sharpen your profile</h2>
+      <p class="sub">Play out real-world situations — each answer fine-tunes your trader DNA for sharper picks.</p>
+      <div class="progress"><div class="bar" id="scenario-progress"></div></div>
+      <div id="scenario-body"></div>
+      <div id="scenario-done" class="hidden">
+        <div class="logo-big">✨</div>
+        <p>Profile updated — your picks just got sharper.</p>
+        <button class="primary" id="scenario-finish">Back to swiping →</button>
+      </div>
     </section>
 
     <!-- SCREEN: Swipe deck -->
@@ -98,7 +112,8 @@
 
     <!-- Bottom nav -->
     <nav id="bottomnav" class="hidden">
-      <button data-screclamp01(float(raw[t]))en="screen-deck" class="active">Discover</button>
+      <button data-screen="screen-deck" class="active">Discover</button>
+      <button data-screen="screen-scenarios">Quizzes</button>
       <button data-screen="screen-profile">Profile</button>
       <button data-screen="screen-likes">Watchlist <span id="like-count">0</span></button>
     </nav>
