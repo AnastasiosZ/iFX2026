@@ -26,9 +26,33 @@
           <li>③ Swipe through tailored picks</li>
         </ul>
         <button class="primary" id="start-btn">Get started</button>
+        <button class="secondary" id="login-btn">Login</button>
+      </div>
+    </section>
+    <!-- SCREEN: Sign Up -->
+    <section class="screen" id="screen-signup">
+      <div class="hero">
+        <div class="logo-big">🔥</div>
+        <h2>Create account</h2>
+        <input class="text-input" type="text" id="signup-username" placeholder="Username" />
+        <input class="text-input" type="email" id="signup-email" placeholder="Email" />
+        <input class="text-input" type="password" id="signup-password" placeholder="Password" />
+        <input class="text-input" type="password" id="signup-confirm" placeholder="Confirm password" />
+        <button class="primary" id="signup-submit-btn">Create account</button>
+        <button class="link-btn" id="signup-back-to-welcome">← Back</button>
       </div>
     </section>
 
+    <!-- SCREEN: Login -->
+    <section class="screen" id="screen-login">
+      <div class="hero">
+        <h2>Welcome back</h2>
+        <input class="text-input" type="text" id="login-username" placeholder="Username" />
+        <input class="text-input" type="password" id="login-password" placeholder="Password" />
+        <button class="primary" id="login-submit-btn">Login</button>
+        <button class="link-btn" id="back-to-welcome">← Back</button>
+      </div>
+    </section>
     <!-- SCREEN: Questionnaire -->
     <section class="screen" id="screen-quiz">
       <div class="progress"><div class="bar" id="quiz-progress"></div></div>
@@ -69,11 +93,12 @@
       <h2>Your watchlist</h2>
       <div id="likes-list"></div>
       <button class="primary" id="back-to-deck">Keep swiping</button>
+      
     </section>
 
     <!-- Bottom nav -->
     <nav id="bottomnav" class="hidden">
-      <button data-screen="screen-deck" class="active">Discover</button>
+      <button data-screclamp01(float(raw[t]))en="screen-deck" class="active">Discover</button>
       <button data-screen="screen-profile">Profile</button>
       <button data-screen="screen-likes">Watchlist <span id="like-count">0</span></button>
     </nav>
@@ -86,7 +111,6 @@
       <div id="modal-body"></div>
     </div>
   </div>
-
   <script src="/static/app.js"></script>
 </body>
 </html>
