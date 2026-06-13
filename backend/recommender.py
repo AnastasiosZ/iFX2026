@@ -16,8 +16,11 @@ toward liked instruments and away from passed ones (with exponential time
 decay so recent swipes dominate — the 'decreasing confidence over time' idea
 from the brief, applied at inference instead of training).
 
-No training, no GPU. Pure numpy. Deterministic and explainable, which is
-exactly what a functionality-first demo needs.
+The deck itself is not returned as a frozen argsort: instrument cosine
+similarities are used as logits in a low-temperature softmax that we SAMPLE
+from (Gumbel-top-k), so strong matches lead but the deck stays fresh between
+visits. No training, no GPU — pure numpy, and every card still carries an
+explainable 'why'.
 """
 
 from __future__ import annotations
@@ -34,11 +37,20 @@ from .personas import PERSONAS
 # How fast a swipe's influence decays. Half-life in seconds; recent swipes
 # weigh more. 1 hour half-life is generous for a demo session.
 SWIPE_HALFLIFE_S = 3600.0
-# Learning rate for nudging the personality vector per swipe.
-SWIPE_LR = 0.08
-# Blend weights for the final score.
-W_CONTENT = 0.6
-W_COLLAB = 0.4
+# Step size for nudging the personality vector per swipe. This is the L2 distance
+# a *maximally surprising* swipe moves the vector (scaled down by how expected the
+# swipe was and by time decay — see effective_vector). It is a unit-direction step,
+# not proportional to the raw distance to the instrument, so a pass on a high-match
+# card actually shifts the profile instead of vanishing.
+SWIPE_LR = 0.45
+# Blend weights for the final score. The collaborative term is downweighted: in
+# this demo it is entirely persona-basket-derived (the basket signal uses the
+# hand-authored baskets directly, and the same-persona crowd signal aggregates
+# likes from dummy users that were themselves seeded from those baskets), so it
+# is a low-quality, self-referential signal. Content (cosine fit to the user's
+# own personality) carries the recommendation; collab only nudges.
+W_CONTENT = 0.8
+W_COLLAB = 0.2
 # How many nearest personas contribute to the collaborative signal.
 K_PERSONAS = 3
 
@@ -87,9 +99,24 @@ class UserState:
 
     def effective_vector(self) -> dict[str, float]:
         """
-        base personality nudged by decayed implicit feedback.
-        liked instruments pull the vector toward their trait profile;
-        passes push it away. Recent swipes dominate via exponential decay.
+        Base personality nudged by decayed implicit feedback. Each swipe moves
+        the vector a fixed-size step ALONG the unit direction toward a liked
+        instrument (or away from a passed one), scaled by how *surprising* the
+        swipe was — i.e. by the current prediction error. Liking a poor match or
+        passing on a strong one contradicts the current vector and so shifts it
+        a lot; confirming swipes (liking an already-good match) barely move it.
+
+        The earlier version moved by SWIPE_LR * (target - v), i.e. proportional
+        to the raw distance to the instrument. That made a pass on a high-match
+        card — which sits right next to the user's vector — barely move anything,
+        so disliking strong matches had almost no effect. The unit-step form fixes
+        that: the move size comes from the surprise term, not the distance.
+
+        Surprise is measured with Pearson correlation, not raw cosine: trait
+        vectors all sit in the positive orthant, so cosine bunches near 1 and
+        would deem almost everything a "good match"; centering (Pearson) restores
+        real contrast (the same reason persona matching uses it). Recent swipes
+        dominate via exponential time decay.
         """
         v = _vec(self.base_vector)
         now = time.time()
@@ -97,11 +124,17 @@ class UserState:
             inst = INSTRUMENTS_BY_SYMBOL.get(sw.symbol)
             if inst is None:
                 continue
+            target = _vec(inst["trait_vector"])
+            diff = target - v
+            dist = float(np.linalg.norm(diff))
+            if dist < 1e-9:
+                continue
             age = max(now - sw.ts, 0.0)
             decay = 0.5 ** (age / SWIPE_HALFLIFE_S)
-            target = _vec(inst["trait_vector"])
-            direction = (target - v) if sw.liked else (v - target)
-            v = v + SWIPE_LR * decay * direction
+            align = (pearson(v, target) + 1) / 2          # current fit, 0..1
+            surprise = (1.0 - align) if sw.liked else align
+            sign = 1.0 if sw.liked else -1.0
+            v = v + SWIPE_LR * decay * surprise * sign * (diff / dist)
         v = np.clip(v, 0.0, 1.0)
         return from_list(v.tolist())
 
@@ -183,6 +216,42 @@ def _collab_scores(user_vec: dict[str, float]) -> dict[str, float]:
     return weights
 
 
+# Temperature for sampling the recommendation deck. Rather than always returning
+# the highest-match cards, we treat each instrument's cosine similarity to the
+# user as a logit, divide by this (low) temperature and SAMPLE the deck from the
+# resulting softmax distribution. Low tau keeps strong matches dominant while
+# still varying the deck between visits, so the user isn't shown an identical,
+# frozen ranking every time. Lower -> greedier (approaches pure argsort); higher
+# -> more exploratory. Cosine similarities here bunch in a narrow high band, so
+# a small tau is needed to produce meaningful spread.
+RECOMMEND_SOFTMAX_TAU = 0.05
+
+# Process-wide RNG for deck sampling. Module-level so it isn't reseeded per call.
+_rng = np.random.default_rng()
+
+
+def _sample_order(logits: np.ndarray, tau: float) -> np.ndarray:
+    """
+    Sample an ordering of items (best-first) from softmax(logits / tau) WITHOUT
+    replacement, via the Gumbel-top-k trick: perturb each logit with i.i.d.
+    Gumbel(0,1) noise and argsort descending. This is exactly equivalent to
+    sequential Plackett-Luce sampling from the softmax, so the lead card is drawn
+    proportional to its softmax probability and so on down the deck. With tau<=0
+    (or no items) it degenerates to a deterministic argsort by logit.
+    """
+    n = len(logits)
+    if n == 0:
+        return np.empty(0, dtype=int)
+    if tau <= 0:
+        return np.argsort(-logits)
+    z = logits / tau
+    z = z - z.max()  # softmax is shift-invariant; subtract max for stability
+    # Gumbel(0,1) = -log(-log(U)); the epsilons guard against log(0).
+    u = _rng.random(n)
+    gumbel = -np.log(-np.log(u + 1e-12) + 1e-12)
+    return np.argsort(-(z + gumbel))
+
+
 def _normalize_counts(counts: dict[str, int]) -> dict[str, float]:
     """Like-counts -> [0,1] by dividing by the max count (popularity within crowd)."""
     if not counts:
@@ -216,7 +285,8 @@ def recommend(user: UserState, asset_class: str | None = None, limit: int = 20,
         if asset_class and inst["asset_class"] != asset_class:
             continue
         ivec = _vec(inst["trait_vector"])
-        content = (cosine(u, ivec) + 1) / 2           # -> [0,1]
+        cos = cosine(u, ivec)                         # raw cosine, the sampling logit
+        content = (cos + 1) / 2                        # -> [0,1] for the blended match
         basket_s = basket.get(inst["symbol"], 0.0)
         crowd_s = crowd.get(inst["symbol"], 0.0)
         collab_s = COLLAB_FROM_PERSONA_BASKET * basket_s + COLLAB_FROM_PERSONA_USERS * crowd_s
@@ -236,14 +306,22 @@ def recommend(user: UserState, asset_class: str | None = None, limit: int = 20,
             "data_source": inst.get("data_source", "fallback"),
             "match": round(score * 100),
             "_content": content,
+            "_cosine": cos,
             "_collab": collab_s,
             "_crowd": crowd_s,
             "already_swiped": inst["symbol"] in swiped,
             "why": _explain(uvec, inst, content, basket_s, crowd_s),
         })
 
-    rows.sort(key=lambda r: r["match"], reverse=True)
-    return rows[:limit]
+    if not rows:
+        return []
+    # Don't just return the top-`limit` by match: sample the deck from a
+    # low-temperature softmax over cosine similarity (the content logit), so the
+    # ordering is personalized but stochastic — strong matches lead most of the
+    # time, weaker ones surface occasionally, and the deck varies between visits.
+    logits = np.array([r["_cosine"] for r in rows], dtype=float)
+    order = _sample_order(logits, RECOMMEND_SOFTMAX_TAU)
+    return [rows[i] for i in order[:limit]]
 
 
 # Traits whose *high* value we phrase positively when explaining a match.
