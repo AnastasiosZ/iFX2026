@@ -5,6 +5,7 @@
 const API = "";  // same origin
 const S = {
   sessionId: null,
+  username: null,
   answers: {},
   quizIdx: 0,
   questions: [],
@@ -13,8 +14,12 @@ const S = {
   assetClasses: [],
   activeClass: null,
   deck: [],        // current asset-class recommendations queue
-  likes: [],       // {symbol,name,match}
+  likes: [],       // {symbol,name,match,why}
   personas: [],
+  seen: {},        // symbol -> full recommend item (carries why + strategy)
+  scenarios: [],
+  scenarioIdx: 0,
+  scenarioAnswers: {},
 };
 
 const $ = (id) => document.getElementById(id);
@@ -47,16 +52,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   $("start-btn").onclick = () => show("screen-signup");
   $("signup-back-to-welcome").onclick = () => show("screen-welcome");
-  $("signup-submit-btn").onclick = () => {
-    const user = $("signup-username").value.trim();
-    const email = $("signup-email").value.trim();
-    const pass = $("signup-password").value;
-    const confirm = $("signup-confirm").value;
-    if (!user || !email || !pass) return;
-    if (pass !== confirm) { alert("Passwords don't match"); return; }
-    // TODO: call backend to register
-    beginQuiz();
-  };
+  $("signup-submit-btn").onclick = doSignup;
   $("to-deck-btn").onclick = () => { show("screen-deck"); $("bottomnav").classList.remove("hidden"); };
   $("back-to-deck").onclick = () => show("screen-deck");
   $("chat-send").onclick = sendChat;
@@ -65,19 +61,82 @@ window.addEventListener("DOMContentLoaded", async () => {
   $("btn-like").onclick = () => swipeTop(true);
   $("btn-pass").onclick = () => swipeTop(false);
   $("btn-info").onclick = () => { const t = topCard(); if (t) openModal(t.dataset.symbol); };
+  $("logout-btn").onclick = doLogout;
+  $("scenario-finish").onclick = () => show("screen-deck");
   document.querySelectorAll("#bottomnav button").forEach((b) => {
-    b.onclick = () => { if (b.dataset.screen === "screen-likes") renderLikes(); show(b.dataset.screen); if (b.dataset.screen === "screen-profile") refreshProfile(); };
+    b.onclick = () => {
+      const target = b.dataset.screen;
+      if (target === "screen-likes") renderLikes();
+      if (target === "screen-scenarios") return startScenarios();
+      show(target);
+      if (target === "screen-profile") refreshProfile();
+    };
   });
 
   $("login-btn").onclick = () => show("screen-login");
   $("back-to-welcome").onclick = () => show("screen-welcome");
-  $("login-submit-btn").onclick = () => {
-    const user = $("login-username").value;
-    const pass = $("login-password").value;
-    // TODO: validate / call backend
-    console.log("Login attempt:", user);
-  };
+  $("login-submit-btn").onclick = doLogin;
+  $("login-password").addEventListener("keydown", (e) => { if (e.key === "Enter") doLogin(); });
 });
+
+/* ---------------- auth ---------------- */
+async function doSignup() {
+  const user = $("signup-username").value.trim();
+  const email = $("signup-email").value.trim();
+  const pass = $("signup-password").value;
+  const confirm = $("signup-confirm").value;
+  if (!user || !email || !pass) { alert("Please fill in username, email and password."); return; }
+  if (pass !== confirm) { alert("Passwords don't match"); return; }
+  try {
+    const res = await api("/api/auth/signup", {
+      method: "POST",
+      body: JSON.stringify({ username: user, email, password: pass }),
+    });
+    S.sessionId = res.session_id;
+    S.username = res.username;
+    beginQuiz();
+  } catch (e) {
+    alert("Could not create account — that username may be taken.");
+  }
+}
+
+async function doLogin() {
+  const user = $("login-username").value.trim();
+  const pass = $("login-password").value;
+  if (!user || !pass) return;
+  try {
+    const res = await api("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ username: user, password: pass }),
+    });
+    S.sessionId = res.session_id;
+    S.username = res.username;
+    if (res.has_profile) {
+      // Returning user — skip onboarding, go straight to the deck.
+      S.personas = res.personas; S.vector = res.vector;
+      await loadTabs();
+      await loadDeck();
+      show("screen-deck");
+      $("bottomnav").classList.remove("hidden");
+    } else {
+      beginQuiz();
+    }
+  } catch (e) {
+    alert("Invalid username or password.");
+  }
+}
+
+async function doLogout() {
+  try { await api("/api/auth/logout", { method: "POST", body: JSON.stringify({ session_id: S.sessionId }) }); } catch {}
+  // reset client state
+  S.sessionId = null; S.username = null; S.answers = {}; S.quizIdx = 0;
+  S.transcript = []; S.deck = []; S.likes = []; S.personas = []; S.seen = {};
+  S.scenarioAnswers = {}; S.scenarioIdx = 0;
+  $("like-count").textContent = "0";
+  $("bottomnav").classList.add("hidden");
+  $("login-username").value = ""; $("login-password").value = "";
+  show("screen-welcome");
+}
 
 /* ---------------- questionnaire ---------------- */
 async function beginQuiz() {
@@ -112,12 +171,11 @@ async function nextQuiz() {
     renderQuiz();
   } else {
     $("quiz-progress").style.width = "100%";
-    // create session from answers
-    const res = await api("/api/session", {
+    // apply quiz answers to the logged-in user's profile
+    await api("/api/session", {
       method: "POST",
-      body: JSON.stringify({ answers: S.answers }),
+      body: JSON.stringify({ session_id: S.sessionId, answers: S.answers }),
     });
-    S.sessionId = res.session_id;
     startInterview();
   }
 }
@@ -249,6 +307,7 @@ async function loadTabs() {
 async function loadDeck() {
   const res = await api(`/api/recommend?session_id=${S.sessionId}&asset_class=${S.activeClass}&limit=20`);
   S.deck = res.items.filter((i) => !i.already_swiped);
+  res.items.forEach((i) => { S.seen[i.symbol] = i; });  // keep why + strategy for the modal
   renderDeck();
   updateMatchStrip();
 }
@@ -371,7 +430,7 @@ async function swipeTop(liked, alreadyAnimated) {
   if (!item) return;
   const card = topCard();
   if (card && !alreadyAnimated) flyOut(card, liked);
-  if (liked) S.likes.push({ symbol:item.symbol, name:item.name, match:item.match });
+  if (liked) S.likes.push({ symbol:item.symbol, name:item.name, match:item.match, why:item.why });
   $("like-count").textContent = S.likes.length;
   // record + get updated profile (the personalization loop)
   try {
@@ -389,21 +448,100 @@ async function swipeTop(liked, alreadyAnimated) {
 /* ---------------- modal detail ---------------- */
 async function openModal(symbol) {
   const inst = await api(`/api/instrument/${symbol}`);
+  const item = S.seen[symbol];                 // carries the user-specific "why"
   const ret = (inst.period_return*100).toFixed(1);
+  const md = inst.metadata || {};
+  const strat = inst.strategy || {};
+
+  const whyHtml = item && item.why ? `
+    <div class="modal-section">
+      <div class="sec-title">Why you're seeing this</div>
+      <div class="why-box">“${item.why}”</div>
+    </div>` : "";
+
+  const metaRows = [
+    ["Asset type", md.asset_class_label],
+    ["Risk level", md.risk_band],
+    ["1y trend", md.trend],
+    ["Liquidity", md.liquidity],
+    ["Latest price", md.latest_price != null ? `$${md.latest_price}` : null],
+    ["1y range", (md.period_low != null && md.period_high != null) ? `$${md.period_low} – $${md.period_high}` : null],
+    ["Annualized volatility", inst.annualized_volatility != null ? `${(inst.annualized_volatility*100).toFixed(0)}%` : null],
+  ].filter((r) => r[1] != null && r[1] !== "");
+  const metaHtml = `<div class="meta-grid">${metaRows.map((r)=>`<div class="meta-k">${r[0]}</div><div class="meta-v">${r[1]}</div>`).join("")}</div>`;
+
+  const stratHtml = strat.text ? `
+    <div class="modal-section">
+      <div class="sec-title">Suggested strategy</div>
+      <p class="strat-thesis">${strat.thesis || ""}</p>
+      <ul class="strat-list">
+        ${strat.horizon ? `<li><b>Horizon:</b> ${strat.horizon}</li>` : ""}
+        ${strat.sizing ? `<li><b>Position:</b> ${strat.sizing}</li>` : ""}
+        ${strat.risk_management ? `<li><b>Risk management:</b> ${strat.risk_management}</li>` : ""}
+      </ul>
+      <p class="disclaimer">Educational only — not investment advice.</p>
+    </div>` : "";
+
   $("modal-body").innerHTML = `
     <div class="card-top" style="border-radius:18px 18px 0 0">
       <div><div class="sym">${inst.symbol}</div><div class="nm">${inst.name} · ${inst.sector}</div></div>
       <div class="klass">${inst.asset_class}</div>
     </div>
     <div class="spark">${sparkSVG(inst.sparkline, inst.period_return)}</div>
-    <div class="ret" style="padding:0 18px 12px">1-year change: <b>${ret>=0?"+":""}${ret}%</b> · annualized volatility ${(inst.annualized_volatility*100).toFixed(0)}%</div>
+    <div class="ret" style="padding:0 18px 12px">1-year change: <b>${ret>=0?"+":""}${ret}%</b></div>
     <div class="sliders">
       ${sliderRow("Volatility", inst.scores.volatility, "fill-vol")}
       ${sliderRow("Stability", inst.scores.stability, "fill-stab")}
       ${sliderRow("Reputation", inst.scores.reputation, "fill-rep")}
     </div>
+    ${whyHtml}
+    <div class="modal-section"><div class="sec-title">Key facts</div>${metaHtml}</div>
+    ${stratHtml}
     <div class="desc">${inst.description}</div>`;
   $("modal").classList.remove("hidden");
+}
+
+/* ---------------- scenario quizzes (second-stage refinement) ---------------- */
+async function startScenarios() {
+  if (!S.scenarios.length) {
+    const { scenarios } = await api("/api/scenarios");
+    S.scenarios = scenarios;
+  }
+  S.scenarioIdx = 0;
+  S.scenarioAnswers = {};
+  $("scenario-done").classList.add("hidden");
+  $("scenario-body").classList.remove("hidden");
+  show("screen-scenarios");
+  renderScenario();
+}
+
+function renderScenario() {
+  const s = S.scenarios[S.scenarioIdx];
+  $("scenario-progress").style.width = `${(S.scenarioIdx / S.scenarios.length) * 100}%`;
+  const body = $("scenario-body");
+  body.innerHTML = `<div class="q-prompt">${s.prompt}</div>`;
+  s.options.forEach((opt, i) => {
+    const el = document.createElement("div");
+    el.className = "q-opt";
+    el.textContent = opt.label;
+    el.onclick = () => { S.scenarioAnswers[s.id] = i; el.classList.add("sel"); setTimeout(nextScenario, 180); };
+    body.appendChild(el);
+  });
+}
+
+async function nextScenario() {
+  S.scenarioIdx++;
+  if (S.scenarioIdx < S.scenarios.length) { renderScenario(); return; }
+  $("scenario-progress").style.width = "100%";
+  const res = await api("/api/scenarios", {
+    method: "POST",
+    body: JSON.stringify({ session_id: S.sessionId, answers: S.scenarioAnswers }),
+  });
+  S.personas = res.personas; S.vector = res.effective_vector;
+  // The profile sharpened — refresh the current deck to reflect it.
+  if (S.activeClass) { try { await loadDeck(); } catch {} }
+  $("scenario-body").classList.add("hidden");
+  $("scenario-done").classList.remove("hidden");
 }
 
 /* ---------------- likes ---------------- */

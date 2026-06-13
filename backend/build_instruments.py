@@ -19,6 +19,7 @@ import os
 from pathlib import Path
 
 from .traits import TRAITS, clamp01
+from .strategy import build_strategy
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 OUT_PATH = DATA_DIR / "instruments.json"
@@ -123,6 +124,46 @@ def _project_to_traits(vol: float, ret: float, reputation: float, asset_class: s
     return {t: round(vec[t], 4) for t in TRAITS}
 
 
+def _metadata(closes: list[float], spark: list[float], vol: float, ret: float,
+              reputation: float, asset_class: str) -> dict:
+    """Extra human-facing metadata shown on the instrument detail card."""
+    series = closes or spark
+    latest = round(series[-1], 2) if series else None
+    hi = round(max(series), 2) if series else None
+    lo = round(min(series), 2) if series else None
+    # Position within the period range, 0 (at low) .. 100 (at high).
+    range_pos = None
+    if series and hi is not None and lo is not None and hi > lo:
+        range_pos = round(100 * (series[-1] - lo) / (hi - lo))
+    trend = "uptrend" if ret > 0.08 else "downtrend" if ret < -0.08 else "sideways"
+    liquidity = "very high" if reputation > 0.85 else "high" if reputation > 0.6 else "moderate"
+    return {
+        "latest_price": latest,
+        "period_high": hi,
+        "period_low": lo,
+        "range_position": range_pos,           # 0-100, where in the 1y range we are
+        "trend": trend,
+        "liquidity": liquidity,
+        "risk_band": _risk_band(vol),
+        "asset_class_label": {
+            "stock": "Stock", "etf": "ETF", "bond": "Bond / Bond fund",
+            "crypto": "Cryptocurrency", "cfd": "CFD",
+        }.get(asset_class, asset_class.title()),
+    }
+
+
+def _risk_band(vol: float) -> str:
+    if vol >= 0.6:
+        return "very high"
+    if vol >= 0.4:
+        return "high"
+    if vol >= 0.22:
+        return "moderate"
+    if vol >= 0.1:
+        return "low"
+    return "very low"
+
+
 def _scores_for_ui(vol: float, reputation: float) -> dict[str, float]:
     """The 0-100 slider scores shown on the instrument detail card."""
     volatility = clamp01(vol / 0.8)
@@ -202,6 +243,10 @@ def build() -> list[dict]:
             "scores": _scores_for_ui(vol, u["reputation"]),
             "annualized_volatility": round(vol, 4),
             "period_return": round(ret, 4),
+            "reputation": round(u["reputation"], 3),
+            "metadata": _metadata(closes, spark, vol, ret, u["reputation"], u["asset_class"]),
+            "strategy": build_strategy(u["name"], u["symbol"], u["asset_class"],
+                                       vol, ret, u["reputation"]),
             "trait_vector": _project_to_traits(vol, ret, u["reputation"], u["asset_class"]),
             "sparkline": spark,
             "data_source": source,
