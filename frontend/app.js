@@ -45,7 +45,18 @@ window.addEventListener("DOMContentLoaded", async () => {
     badge.className = "badge " + h.llm_backend;
   } catch { /* leave badge as-is */ }
 
-  $("start-btn").onclick = beginQuiz;
+  $("start-btn").onclick = () => show("screen-signup");
+  $("signup-back-to-welcome").onclick = () => show("screen-welcome");
+  $("signup-submit-btn").onclick = () => {
+    const user = $("signup-username").value.trim();
+    const email = $("signup-email").value.trim();
+    const pass = $("signup-password").value;
+    const confirm = $("signup-confirm").value;
+    if (!user || !email || !pass) return;
+    if (pass !== confirm) { alert("Passwords don't match"); return; }
+    // TODO: call backend to register
+    beginQuiz();
+  };
   $("to-deck-btn").onclick = () => { show("screen-deck"); $("bottomnav").classList.remove("hidden"); };
   $("back-to-deck").onclick = () => show("screen-deck");
   $("chat-send").onclick = sendChat;
@@ -57,6 +68,15 @@ window.addEventListener("DOMContentLoaded", async () => {
   document.querySelectorAll("#bottomnav button").forEach((b) => {
     b.onclick = () => { if (b.dataset.screen === "screen-likes") renderLikes(); show(b.dataset.screen); if (b.dataset.screen === "screen-profile") refreshProfile(); };
   });
+
+  $("login-btn").onclick = () => show("screen-login");
+  $("back-to-welcome").onclick = () => show("screen-welcome");
+  $("login-submit-btn").onclick = () => {
+    const user = $("login-username").value;
+    const pass = $("login-password").value;
+    // TODO: validate / call backend
+    console.log("Login attempt:", user);
+  };
 });
 
 /* ---------------- questionnaire ---------------- */
@@ -406,3 +426,4 @@ if (_origToDeck) _origToDeck.addEventListener("click", async () => {
   if (!S.assetClasses.length) await loadTabs();
   await loadDeck();
 });
+
