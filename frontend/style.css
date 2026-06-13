@@ -225,3 +225,32 @@ button.primary:disabled { opacity: 0.5; }
   cursor: pointer;
   margin-top: 8px;
 }
+
+/* Scenario quizzes */
+#screen-scenarios h2 { margin: 10px 0 6px; }
+.sub { color: var(--muted); font-size: 13px; margin-bottom: 16px; line-height: 1.4; }
+#scenario-done { text-align: center; margin: auto 0; }
+#scenario-done p { color: var(--text); font-size: 16px; margin: 12px 0 24px; }
+
+/* Modal: why / metadata / strategy sections */
+.modal-section { padding: 4px 18px 14px; }
+.sec-title {
+  font-size: 12px; text-transform: uppercase; letter-spacing: 0.6px;
+  color: var(--muted); font-weight: 700; margin: 10px 0 8px;
+}
+.why-box {
+  background: var(--card2); border-left: 3px solid var(--accent);
+  border-radius: 8px; padding: 12px 14px; font-size: 14px;
+  font-style: italic; color: #cfd2ee; line-height: 1.4;
+}
+.meta-grid { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 13px; }
+.meta-k { color: var(--muted); }
+.meta-v { text-align: right; font-weight: 600; text-transform: capitalize; }
+.strat-thesis { font-size: 14px; color: #cfd2ee; line-height: 1.45; margin-bottom: 10px; }
+.strat-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.strat-list li {
+  font-size: 13px; color: var(--text); background: var(--card);
+  border-radius: 10px; padding: 10px 12px; line-height: 1.4;
+}
+.strat-list li b { color: var(--accent); }
+.disclaimer { font-size: 11px; color: var(--muted); margin-top: 10px; font-style: italic; }
