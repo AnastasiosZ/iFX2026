@@ -20,7 +20,3 @@ data/finter.db-*
 Thumbs.db
 .idea/
 .vscode/
-
-
-# Pycache
-backend/__pycache__/*
