@@ -20,6 +20,12 @@ const S = {
   scenarios: [],
   scenarioIdx: 0,
   scenarioAnswers: {},
+  swipesRemaining: null,   // daily swipe budget left (null until known)
+  dailyLimit: 20,
+  canReevaluate: true,
+  interviewBusy: false,    // lock while the AI is "thinking" (anti-spam)
+  watchlist: [],           // full watchlist items from the backend
+  watchlistFilter: "all",  // active asset-class filter on the watchlist tab
 };
 
 const $ = (id) => document.getElementById(id);
@@ -43,13 +49,6 @@ function show(screenId) {
 
 /* ---------------- boot ---------------- */
 window.addEventListener("DOMContentLoaded", async () => {
-  try {
-    const h = await api("/api/health");
-    const badge = $("llm-badge");
-    badge.textContent = h.llm_backend === "ollama" ? "🦙 Llama" : "⚙ Heuristic";
-    badge.className = "badge " + h.llm_backend;
-  } catch { /* leave badge as-is */ }
-
   $("start-btn").onclick = () => show("screen-signup");
   $("signup-back-to-welcome").onclick = () => show("screen-welcome");
   $("signup-submit-btn").onclick = doSignup;
@@ -62,11 +61,13 @@ window.addEventListener("DOMContentLoaded", async () => {
   $("btn-pass").onclick = () => swipeTop(false);
   $("btn-info").onclick = () => { const t = topCard(); if (t) openModal(t.dataset.symbol); };
   $("logout-btn").onclick = doLogout;
+  $("reevaluate-btn").onclick = doReevaluate;
+  $("delete-account-btn").onclick = doDeleteAccount;
   $("scenario-finish").onclick = () => show("screen-deck");
   document.querySelectorAll("#bottomnav button").forEach((b) => {
     b.onclick = () => {
       const target = b.dataset.screen;
-      if (target === "screen-likes") renderLikes();
+      if (target === "screen-likes") return loadWatchlist();
       if (target === "screen-scenarios") return startScenarios();
       show(target);
       if (target === "screen-profile") refreshProfile();
@@ -132,6 +133,7 @@ async function doLogout() {
   S.sessionId = null; S.username = null; S.answers = {}; S.quizIdx = 0;
   S.transcript = []; S.deck = []; S.likes = []; S.personas = []; S.seen = {};
   S.scenarioAnswers = {}; S.scenarioIdx = 0;
+  S.watchlist = []; S.watchlistFilter = "all"; S.swipesRemaining = null; S._pendingQ = null;
   $("like-count").textContent = "0";
   $("bottomnav").classList.add("hidden");
   $("login-username").value = ""; $("login-password").value = "";
@@ -181,22 +183,42 @@ async function nextQuiz() {
 }
 
 /* ---------------- interview ---------------- */
+// Lock the input while the AI is "thinking" so spamming Enter can't queue
+// multiple answers or make two questions appear at once (req #20).
+function setInterviewBusy(busy) {
+  S.interviewBusy = busy;
+  $("chat-input").disabled = busy;
+  $("chat-send").disabled = busy;
+  if (!busy) $("chat-input").focus();
+}
+
 async function startInterview() {
   show("screen-interview");
   $("chat").innerHTML = "";
   S.interviewTurn = 0;
   S.transcript = [];
+  S._pendingQ = null;
   addBubble("ai", "Hey! I'm your Finter guide. A few quick questions so I really get you 👇");
   await askNext();
 }
 
 async function askNext() {
-  const { question, done } = await api(
-    `/api/interview/next?session_id=${S.sessionId}&turn=${S.interviewTurn}`
-  );
-  if (done || !question) return finishInterview();
-  S._pendingQ = question;
-  setTimeout(() => addBubble("ai", question), 400);
+  setInterviewBusy(true);                 // no answering until the question is up
+  const typing = addBubble("ai", "…");
+  typing.classList.add("typing");
+  let data;
+  try {
+    data = await api(`/api/interview/next?session_id=${S.sessionId}&turn=${S.interviewTurn}`);
+  } catch {
+    typing.remove();
+    setInterviewBusy(false);
+    return;
+  }
+  typing.remove();
+  if (data.done || !data.question) return finishInterview();
+  addBubble("ai", data.question);
+  S._pendingQ = data.question;            // only now is an answer accepted
+  setInterviewBusy(false);
 }
 
 function addBubble(who, text) {
@@ -209,6 +231,7 @@ function addBubble(who, text) {
 }
 
 async function sendChat() {
+  if (S.interviewBusy) return;            // AI is still responding — ignore spam
   const input = $("chat-input");
   const text = input.value.trim();
   if (!text || !S._pendingQ) return;
@@ -229,6 +252,7 @@ async function finishInterview() {
   });
   S.personas = res.personas;
   S.vector = res.vector;
+  S.canReevaluate = false;   // completing the interview uses today's re-eval slot
   typing.remove();
   setTimeout(() => revealProfile(), 300);
 }
@@ -236,6 +260,7 @@ async function finishInterview() {
 /* ---------------- profile ---------------- */
 function revealProfile() {
   show("screen-profile");
+  updateReevaluateBtn();
   renderPersonas(S.personas);
   drawRadar(S.vector);
 }
@@ -244,9 +269,47 @@ async function refreshProfile() {
   try {
     const p = await api(`/api/profile?session_id=${S.sessionId}`);
     S.personas = p.personas; S.vector = p.effective_vector;
+    S.canReevaluate = p.can_reevaluate !== false;
+    if (p.swipes_remaining != null) S.swipesRemaining = p.swipes_remaining;
     renderPersonas(p.personas);
     drawRadar(p.effective_vector);
+    updateReevaluateBtn();
   } catch {}
+}
+
+function updateReevaluateBtn() {
+  const btn = $("reevaluate-btn");
+  btn.disabled = !S.canReevaluate;
+  btn.textContent = S.canReevaluate
+    ? "Re-evaluate my traits"
+    : "Re-evaluation available tomorrow";
+}
+
+async function doReevaluate() {
+  if (!S.canReevaluate) return;
+  const ok = confirm(
+    "Re-evaluate your trader DNA?\n\nThis restarts the questionnaire and AI interview and replaces your current profile. You can only do this once per day."
+  );
+  if (!ok) return;
+  // Reset onboarding state and run the full flow again.
+  S.answers = {}; S.quizIdx = 0; S.transcript = []; S.interviewTurn = 0; S._pendingQ = null;
+  $("bottomnav").classList.add("hidden");
+  beginQuiz();
+}
+
+async function doDeleteAccount() {
+  const ok = confirm(
+    "Delete your account?\n\nThis permanently erases your profile, watchlist and history. This cannot be undone."
+  );
+  if (!ok) return;
+  try {
+    await api("/api/auth/delete", {
+      method: "POST",
+      body: JSON.stringify({ session_id: S.sessionId }),
+    });
+  } catch {}
+  alert("Your account has been deleted.");
+  doLogout();
 }
 
 function renderPersonas(personas) {
@@ -263,7 +326,8 @@ function renderPersonas(personas) {
 }
 
 const TRAIT_ORDER = ["risk_tolerance","risk_aversion","patience","impulsivity","discipline","greed","confidence","analytical_depth","contrarian_tendency","herd_mentality"];
-const TRAIT_SHORT = { risk_tolerance:"Risk+", risk_aversion:"Safe", patience:"Patient", impulsivity:"Impulse", discipline:"Disc.", greed:"Greed", confidence:"Conf.", analytical_depth:"Analysis", contrarian_tendency:"Contra", herd_mentality:"Herd" };
+// Full, readable trait labels for the radar (no 8-char truncation — req #4).
+const TRAIT_SHORT = { risk_tolerance:"Risk Appetite", risk_aversion:"Caution", patience:"Patience", impulsivity:"Impulsiveness", discipline:"Discipline", greed:"Greed", confidence:"Confidence", analytical_depth:"Analytical", contrarian_tendency:"Contrarian", herd_mentality:"Herd Instinct" };
 
 function drawRadar(vec) {
   const c = $("radar"); const ctx = c.getContext("2d");
@@ -271,16 +335,18 @@ function drawRadar(vec) {
   const n = TRAIT_ORDER.length;
   ctx.clearRect(0,0,W,H);
   // grid
-  ctx.strokeStyle = "#ffffff22"; ctx.fillStyle = "#9aa0bd"; ctx.font = "9px sans-serif"; ctx.textAlign = "center";
+  ctx.strokeStyle = "#ffffff22"; ctx.fillStyle = "#9aa0bd"; ctx.font = "10px sans-serif"; ctx.textBaseline = "middle";
   for (let ring=1; ring<=3; ring++) {
     ctx.beginPath();
     for (let i=0;i<=n;i++){ const a=(i/n)*Math.PI*2 - Math.PI/2; const r=R*ring/3; const x=cx+r*Math.cos(a), y=cy+r*Math.sin(a); i?ctx.lineTo(x,y):ctx.moveTo(x,y);} ctx.stroke();
   }
-  // axes + labels
+  // axes + labels (full trait names; align text away from the edges so nothing clips)
   for (let i=0;i<n;i++){ const a=(i/n)*Math.PI*2 - Math.PI/2;
     ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+R*Math.cos(a), cy+R*Math.sin(a)); ctx.stroke();
-    const lx=cx+(R+16)*Math.cos(a), ly=cy+(R+16)*Math.sin(a);
-    ctx.fillText(TRAIT_SHORT[TRAIT_ORDER[i]], lx, ly+3);
+    const cosA = Math.cos(a);
+    const lx=cx+(R+14)*cosA, ly=cy+(R+14)*Math.sin(a);
+    ctx.textAlign = cosA > 0.25 ? "left" : cosA < -0.25 ? "right" : "center";
+    ctx.fillText(TRAIT_SHORT[TRAIT_ORDER[i]], lx, ly);
   }
   // polygon
   ctx.beginPath();
@@ -305,11 +371,29 @@ async function loadTabs() {
 }
 
 async function loadDeck() {
-  const res = await api(`/api/recommend?session_id=${S.sessionId}&asset_class=${S.activeClass}&limit=20`);
+  const res = await api(`/api/recommend?session_id=${S.sessionId}&asset_class=${S.activeClass}&limit=40`);
   S.deck = res.items.filter((i) => !i.already_swiped);
   res.items.forEach((i) => { S.seen[i.symbol] = i; });  // keep why + strategy for the modal
+  if (res.swipes_remaining != null) S.swipesRemaining = res.swipes_remaining;
+  if (res.daily_swipe_limit != null) S.dailyLimit = res.daily_swipe_limit;
   renderDeck();
   updateMatchStrip();
+  updateSwipeMeter();
+}
+
+function updateSwipeMeter() {
+  const meter = $("swipe-meter");
+  if (S.swipesRemaining == null) { meter.classList.add("hidden"); return; }
+  meter.classList.remove("hidden");
+  const n = S.swipesRemaining;
+  meter.textContent = n > 0
+    ? `⚡ ${n} swipe${n === 1 ? "" : "s"} left today`
+    : "⚡ No swipes left today — come back tomorrow!";
+  meter.classList.toggle("empty", n <= 0);
+}
+
+function swipesExhausted() {
+  return S.swipesRemaining != null && S.swipesRemaining <= 0;
 }
 
 function updateMatchStrip() {
@@ -322,6 +406,12 @@ function updateMatchStrip() {
 function renderDeck() {
   const deck = $("deck");
   deck.innerHTML = "";
+  if (swipesExhausted()) {
+    $("swipe-controls").classList.add("hidden");   // remove the buttons entirely
+    deck.innerHTML = `<div class="deck-empty">⚡<br/>You're out of swipes for today.<br/>Come back tomorrow for a fresh batch of picks.</div>`;
+    return;
+  }
+  $("swipe-controls").classList.remove("hidden");
   if (!S.deck.length) {
     deck.innerHTML = `<div class="deck-empty">🎉<br/>You've seen every ${labelFor(S.activeClass)} pick.<br/>Try another tab or check your watchlist.</div>`;
     return;
@@ -426,12 +516,11 @@ function flyOut(card, liked) {
 }
 
 async function swipeTop(liked, alreadyAnimated) {
+  if (swipesExhausted()) { renderDeck(); return; }
   const item = S.deck[0];
   if (!item) return;
   const card = topCard();
   if (card && !alreadyAnimated) flyOut(card, liked);
-  if (liked) S.likes.push({ symbol:item.symbol, name:item.name, match:item.match, why:item.why });
-  $("like-count").textContent = S.likes.length;
   // record + get updated profile (the personalization loop)
   try {
     const res = await api("/api/swipe", {
@@ -439,10 +528,26 @@ async function swipeTop(liked, alreadyAnimated) {
       body: JSON.stringify({ session_id: S.sessionId, symbol: item.symbol, liked }),
     });
     S.personas = res.personas; S.vector = res.effective_vector;
+    if (res.swipes_remaining != null) S.swipesRemaining = res.swipes_remaining;
+    if (liked) {
+      S.likes.push({ symbol:item.symbol, name:item.name, match:item.match, why:item.why });
+      updateLikeCount();
+    }
     updateMatchStrip();
-  } catch {}
+    updateSwipeMeter();
+  } catch (e) {
+    // Most likely the daily swipe limit (HTTP 429) — stop here and reflect it.
+    S.swipesRemaining = 0;
+    updateSwipeMeter();
+    renderDeck();
+    return;
+  }
   S.deck.shift();
   setTimeout(renderDeck, alreadyAnimated ? 300 : 260);
+}
+
+function updateLikeCount() {
+  $("like-count").textContent = S.likes.length;
 }
 
 /* ---------------- modal detail ---------------- */
@@ -454,7 +559,7 @@ async function openModal(symbol) {
   const strat = inst.strategy || {};
 
   const whyHtml = item && item.why ? `
-    <div class="modal-section">
+    <div class="modal-section why-section">
       <div class="sec-title">Why you're seeing this</div>
       <div class="why-box">“${item.why}”</div>
     </div>` : "";
@@ -479,34 +584,118 @@ async function openModal(symbol) {
         ${strat.sizing ? `<li><b>Position:</b> ${strat.sizing}</li>` : ""}
         ${strat.risk_management ? `<li><b>Risk management:</b> ${strat.risk_management}</li>` : ""}
       </ul>
-      <p class="disclaimer">Educational only — not investment advice.</p>
     </div>` : "";
 
   $("modal-body").innerHTML = `
-    <div class="card-top" style="border-radius:18px 18px 0 0">
+    <div class="card-top" style="border-radius:0">
       <div><div class="sym">${inst.symbol}</div><div class="nm">${inst.name} · ${inst.sector}</div></div>
       <div class="klass">${inst.asset_class}</div>
     </div>
-    <div class="spark">${sparkSVG(inst.sparkline, inst.period_return)}</div>
+    <div class="chart-wrap">
+      <div class="range-tabs" id="range-tabs"></div>
+      <div class="chart-area" id="chart-area"></div>
+      <div class="chart-tip hidden" id="chart-tip"></div>
+    </div>
     <div class="ret" style="padding:0 18px 12px">1-year change: <b>${ret>=0?"+":""}${ret}%</b></div>
     <div class="sliders">
       ${sliderRow("Volatility", inst.scores.volatility, "fill-vol")}
       ${sliderRow("Stability", inst.scores.stability, "fill-stab")}
       ${sliderRow("Reputation", inst.scores.reputation, "fill-rep")}
     </div>
-    ${whyHtml}
     <div class="modal-section"><div class="sec-title">Key facts</div>${metaHtml}</div>
     ${stratHtml}
-    <div class="desc">${inst.description}</div>`;
+    <div class="desc">${inst.description}</div>
+    ${whyHtml}
+    <p class="disclaimer compliance">Educational content only — not investment advice. Finter does not execute trades or hold funds.</p>`;
   $("modal").classList.remove("hidden");
+  setupChart(inst.sparkline, inst.period_return);
+}
+
+/* Interactive price chart: hover/drag to read prices, switch time ranges (#6). */
+const RANGE_FRAC = { "1M": 1 / 12, "3M": 0.25, "6M": 0.5, "1Y": 1 };
+
+function setupChart(points, periodReturn) {
+  const tabs = $("range-tabs");
+  tabs.innerHTML = "";
+  let active = "1Y";
+  Object.keys(RANGE_FRAC).forEach((id) => {
+    const b = document.createElement("button");
+    b.textContent = id;
+    b.classList.toggle("active", id === active);
+    b.onclick = () => {
+      active = id;
+      [...tabs.children].forEach((c) => c.classList.remove("active"));
+      b.classList.add("active");
+      drawChart(points, id);
+    };
+    tabs.appendChild(b);
+  });
+  drawChart(points, active);
+}
+
+function drawChart(allPoints, rangeId) {
+  const area = $("chart-area");
+  if (!allPoints || allPoints.length < 2) {
+    area.innerHTML = `<div class="chart-empty">No price data available.</div>`;
+    return;
+  }
+  const frac = RANGE_FRAC[rangeId] || 1;
+  const n = Math.max(2, Math.round(allPoints.length * frac));
+  const points = allPoints.slice(-n);
+  const winRet = (points[points.length - 1] - points[0]) / (points[0] || 1);
+  const w = 360, h = 120, pad = 6;
+  const min = Math.min(...points), max = Math.max(...points);
+  const span = (max - min) || 1;
+  const stepX = (w - pad * 2) / (points.length - 1);
+  const xy = points.map((p, i) => [pad + i * stepX, pad + (h - pad * 2) * (1 - (p - min) / span)]);
+  const coords = xy.map((c) => `${c[0].toFixed(1)},${c[1].toFixed(1)}`);
+  const color = winRet >= 0 ? "#2ecc71" : "#ff5a7e";
+  const areaPath = `M${coords[0]} L${coords.join(" L")} L${xy[xy.length - 1][0].toFixed(1)},${h} L${pad},${h} Z`;
+  area.innerHTML = `
+    <svg class="chart-svg" viewBox="0 0 ${w} ${h}" width="100%" height="${h}" preserveAspectRatio="none">
+      <path d="${areaPath}" fill="${color}" opacity="0.12"/>
+      <polyline points="${coords.join(" ")}" fill="none" stroke="${color}" stroke-width="2"/>
+      <line class="chart-marker" x1="0" y1="0" x2="0" y2="${h}" stroke="#ffffff66" stroke-width="1" opacity="0"/>
+      <circle class="chart-dot" r="3.5" fill="#fff" stroke="${color}" stroke-width="2" opacity="0"/>
+    </svg>`;
+  const svg = area.querySelector(".chart-svg");
+  const marker = svg.querySelector(".chart-marker");
+  const dot = svg.querySelector(".chart-dot");
+  const tip = $("chart-tip");
+
+  const move = (clientX) => {
+    const rect = svg.getBoundingClientRect();
+    const rel = Math.min(Math.max(clientX - rect.left, 0), rect.width);
+    const vx = (rel / rect.width) * w;
+    let idx = Math.round((vx - pad) / stepX);
+    idx = Math.min(Math.max(idx, 0), points.length - 1);
+    const [px, py] = xy[idx];
+    marker.setAttribute("x1", px); marker.setAttribute("x2", px); marker.setAttribute("opacity", "1");
+    dot.setAttribute("cx", px); dot.setAttribute("cy", py); dot.setAttribute("opacity", "1");
+    const wrapRect = area.parentElement.getBoundingClientRect();
+    tip.classList.remove("hidden");
+    tip.textContent = `$${points[idx].toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+    tip.style.left = (clientX - wrapRect.left) + "px";
+    tip.style.top = (rect.top - wrapRect.top) + "px";
+  };
+  const hide = () => {
+    marker.setAttribute("opacity", "0"); dot.setAttribute("opacity", "0"); tip.classList.add("hidden");
+  };
+  svg.onmousemove = (e) => move(e.clientX);
+  svg.onmouseleave = hide;
+  svg.addEventListener("touchstart", (e) => move(e.touches[0].clientX), { passive: true });
+  svg.addEventListener("touchmove", (e) => move(e.touches[0].clientX), { passive: true });
+  svg.addEventListener("touchend", hide);
 }
 
 /* ---------------- scenario quizzes (second-stage refinement) ---------------- */
 async function startScenarios() {
-  if (!S.scenarios.length) {
+  // Re-fetch every time so the Quizzes tab shows a fresh, random set of the
+  // predefined scenarios on each visit.
+  try {
     const { scenarios } = await api("/api/scenarios");
     S.scenarios = scenarios;
-  }
+  } catch { if (!S.scenarios.length) return; }
   S.scenarioIdx = 0;
   S.scenarioAnswers = {};
   $("scenario-done").classList.add("hidden");
@@ -544,18 +733,87 @@ async function nextScenario() {
   $("scenario-done").classList.remove("hidden");
 }
 
-/* ---------------- likes ---------------- */
+/* ---------------- watchlist ---------------- */
+async function loadWatchlist() {
+  show("screen-likes");
+  try {
+    const res = await api(`/api/watchlist?session_id=${S.sessionId}`);
+    S.watchlist = res.items || [];
+  } catch { S.watchlist = []; }
+  // Keep the badge + modal cache in sync with the server's view of the watchlist.
+  S.likes = S.watchlist.map((i) => ({ symbol:i.symbol, name:i.name, match:i.match, why:i.why }));
+  S.watchlist.forEach((i) => { S.seen[i.symbol] = i; });
+  updateLikeCount();
+  renderWatchlistFilters();
+  renderLikes();
+}
+
+const KLASS_LABELS = { stock:"Stocks", etf:"ETFs", bond:"Bonds", crypto:"Crypto", cfd:"CFDs" };
+
+function renderWatchlistFilters() {
+  const bar = $("watchlist-filters");
+  bar.innerHTML = "";
+  const present = new Set(S.watchlist.map((i) => i.asset_class));
+  if (!present.size) { bar.classList.add("hidden"); return; }
+  bar.classList.remove("hidden");
+  const ids = ["all", "stock", "etf", "bond", "crypto", "cfd"]
+    .filter((o) => o === "all" || present.has(o));
+  if (!ids.includes(S.watchlistFilter)) S.watchlistFilter = "all";
+  ids.forEach((id) => {
+    const b = document.createElement("button");
+    b.textContent = id === "all" ? "All" : (KLASS_LABELS[id] || id);
+    b.classList.toggle("active", id === S.watchlistFilter);
+    b.onclick = () => { S.watchlistFilter = id; renderWatchlistFilters(); renderLikes(); };
+    bar.appendChild(b);
+  });
+}
+
 function renderLikes() {
   const wrap = $("likes-list");
-  if (!S.likes.length) { wrap.innerHTML = `<p class="empty-note">No likes yet — swipe right on what speaks to you.</p>`; return; }
+  let items = S.watchlist.slice();
+  if (S.watchlistFilter !== "all") items = items.filter((i) => i.asset_class === S.watchlistFilter);
+  items.sort((a, b) => b.match - a.match);   // highest matching first within the category
+  if (!items.length) {
+    wrap.innerHTML = S.watchlist.length
+      ? `<p class="empty-note">Nothing in this category yet.</p>`
+      : `<p class="empty-note">No likes yet — swipe right on what speaks to you.</p>`;
+    return;
+  }
   wrap.innerHTML = "";
-  S.likes.slice().reverse().forEach((l) => {
+  items.forEach((l) => {
     const el = document.createElement("div");
     el.className = "like-row";
-    el.innerHTML = `<div><div class="l-sym">${l.symbol}</div><div class="l-nm">${l.name}</div></div><div class="l-match">${l.match}%</div>`;
-    el.onclick = () => openModal(l.symbol);
+    el.innerHTML = `
+      <div class="l-main">
+        <div class="l-sym">${l.symbol} <span class="l-klass">${l.asset_class}</span></div>
+        <div class="l-nm">${l.name}</div>
+      </div>
+      <div class="l-right">
+        <div class="l-match">${l.match}%</div>
+        <button class="l-remove" title="Remove from watchlist">✕</button>
+      </div>`;
+    el.querySelector(".l-main").onclick = () => openModal(l.symbol);
+    el.querySelector(".l-remove").onclick = (e) => { e.stopPropagation(); removeFromWatchlist(l.symbol); };
     wrap.appendChild(el);
   });
+}
+
+async function removeFromWatchlist(symbol) {
+  try {
+    const res = await api("/api/watchlist/remove", {
+      method: "POST",
+      body: JSON.stringify({ session_id: S.sessionId, symbol }),
+    });
+    // Removing it un-nudges the trait vector, so refresh persona/profile state.
+    S.personas = res.personas; S.vector = res.effective_vector;
+  } catch {}
+  S.watchlist = S.watchlist.filter((i) => i.symbol !== symbol);
+  S.likes = S.likes.filter((i) => i.symbol !== symbol);
+  updateLikeCount();
+  renderWatchlistFilters();
+  renderLikes();
+  // It can now resurface in Discover — refresh the deck so it reappears (#15).
+  if (S.activeClass) { try { await loadDeck(); } catch {} }
 }
 
 /* kick off deck loading when entering it the first time */

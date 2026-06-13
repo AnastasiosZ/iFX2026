@@ -62,6 +62,66 @@ UNIVERSE: list[dict] = [
     {"symbol": "ETH-USD", "name": "Ethereum", "asset_class": "crypto", "sector": "Crypto", "reputation": 0.65, "fallback": {"vol": 0.75, "ret": 0.4}},
     {"symbol": "DOGE-USD", "name": "Dogecoin", "asset_class": "crypto", "sector": "Crypto", "reputation": 0.3, "fallback": {"vol": 1.1, "ret": -0.2}},
     {"symbol": "SOL-USD", "name": "Solana", "asset_class": "crypto", "sector": "Crypto", "reputation": 0.45, "fallback": {"vol": 0.95, "ret": 0.6}},
+
+    # --- Additional stocks ---
+    {"symbol": "AMZN", "name": "Amazon", "asset_class": "stock", "sector": "Consumer", "reputation": 0.9, "fallback": {"vol": 0.33, "ret": 0.25}},
+    {"symbol": "V", "name": "Visa", "asset_class": "stock", "sector": "Financials", "reputation": 0.9, "fallback": {"vol": 0.2, "ret": 0.12}},
+    {"symbol": "MA", "name": "Mastercard", "asset_class": "stock", "sector": "Financials", "reputation": 0.89, "fallback": {"vol": 0.21, "ret": 0.13}},
+    {"symbol": "UNH", "name": "UnitedHealth", "asset_class": "stock", "sector": "Healthcare", "reputation": 0.86, "fallback": {"vol": 0.24, "ret": 0.05}},
+    {"symbol": "HD", "name": "Home Depot", "asset_class": "stock", "sector": "Consumer", "reputation": 0.85, "fallback": {"vol": 0.22, "ret": 0.1}},
+    {"symbol": "COST", "name": "Costco", "asset_class": "stock", "sector": "Consumer", "reputation": 0.88, "fallback": {"vol": 0.2, "ret": 0.22}},
+    {"symbol": "DIS", "name": "Walt Disney", "asset_class": "stock", "sector": "Media", "reputation": 0.8, "fallback": {"vol": 0.3, "ret": 0.02}},
+    {"symbol": "BAC", "name": "Bank of America", "asset_class": "stock", "sector": "Financials", "reputation": 0.78, "fallback": {"vol": 0.3, "ret": 0.1}},
+    {"symbol": "XOM", "name": "ExxonMobil", "asset_class": "stock", "sector": "Energy", "reputation": 0.8, "fallback": {"vol": 0.26, "ret": 0.08}},
+    {"symbol": "CVX", "name": "Chevron", "asset_class": "stock", "sector": "Energy", "reputation": 0.8, "fallback": {"vol": 0.25, "ret": 0.06}},
+
+    # --- Additional ETFs ---
+    {"symbol": "VOO", "name": "Vanguard S&P 500 ETF", "asset_class": "etf", "sector": "Broad", "reputation": 0.96, "fallback": {"vol": 0.16, "ret": 0.12}},
+    {"symbol": "IWM", "name": "Russell 2000 ETF", "asset_class": "etf", "sector": "Small Cap", "reputation": 0.85, "fallback": {"vol": 0.24, "ret": 0.08}},
+    {"symbol": "DIA", "name": "Dow Jones ETF", "asset_class": "etf", "sector": "Broad", "reputation": 0.9, "fallback": {"vol": 0.15, "ret": 0.1}},
+    {"symbol": "EFA", "name": "MSCI EAFE ETF", "asset_class": "etf", "sector": "Intl Developed", "reputation": 0.84, "fallback": {"vol": 0.17, "ret": 0.07}},
+    {"symbol": "EEM", "name": "Emerging Markets ETF", "asset_class": "etf", "sector": "Emerging Mkts", "reputation": 0.75, "fallback": {"vol": 0.22, "ret": 0.04}},
+    {"symbol": "XLK", "name": "Technology Sector ETF", "asset_class": "etf", "sector": "Tech", "reputation": 0.86, "fallback": {"vol": 0.26, "ret": 0.2}},
+    {"symbol": "XLE", "name": "Energy Sector ETF", "asset_class": "etf", "sector": "Energy", "reputation": 0.78, "fallback": {"vol": 0.3, "ret": 0.06}},
+    {"symbol": "XLF", "name": "Financials Sector ETF", "asset_class": "etf", "sector": "Financials", "reputation": 0.8, "fallback": {"vol": 0.24, "ret": 0.1}},
+    {"symbol": "VNQ", "name": "Real Estate ETF", "asset_class": "etf", "sector": "Real Estate", "reputation": 0.78, "fallback": {"vol": 0.22, "ret": 0.03}},
+    {"symbol": "SCHD", "name": "Dividend Equity ETF", "asset_class": "etf", "sector": "Dividend", "reputation": 0.85, "fallback": {"vol": 0.16, "ret": 0.09}},
+
+    # --- Additional bonds (bond ETFs as proxies) ---
+    {"symbol": "IEF", "name": "7-10 Yr Treasury ETF", "asset_class": "bond", "sector": "Govt Bond", "reputation": 0.9, "fallback": {"vol": 0.08, "ret": 0.01}},
+    {"symbol": "LQD", "name": "Inv-Grade Corp Bond ETF", "asset_class": "bond", "sector": "Corp Bond", "reputation": 0.85, "fallback": {"vol": 0.09, "ret": 0.03}},
+    {"symbol": "AGG", "name": "US Aggregate Bond ETF", "asset_class": "bond", "sector": "Aggregate", "reputation": 0.92, "fallback": {"vol": 0.07, "ret": 0.02}},
+    {"symbol": "TIP", "name": "TIPS Bond ETF", "asset_class": "bond", "sector": "Inflation", "reputation": 0.84, "fallback": {"vol": 0.08, "ret": 0.02}},
+    {"symbol": "MUB", "name": "Municipal Bond ETF", "asset_class": "bond", "sector": "Muni Bond", "reputation": 0.83, "fallback": {"vol": 0.06, "ret": 0.03}},
+    {"symbol": "EMB", "name": "Emerging Mkts Bond ETF", "asset_class": "bond", "sector": "EM Bond", "reputation": 0.7, "fallback": {"vol": 0.11, "ret": 0.04}},
+    {"symbol": "VCIT", "name": "Interm Corp Bond ETF", "asset_class": "bond", "sector": "Corp Bond", "reputation": 0.83, "fallback": {"vol": 0.07, "ret": 0.03}},
+    {"symbol": "BIL", "name": "1-3 Month T-Bill ETF", "asset_class": "bond", "sector": "T-Bills", "reputation": 0.93, "fallback": {"vol": 0.01, "ret": 0.05}},
+    {"symbol": "VGIT", "name": "Interm Treasury ETF", "asset_class": "bond", "sector": "Govt Bond", "reputation": 0.9, "fallback": {"vol": 0.06, "ret": 0.02}},
+    {"symbol": "JNK", "name": "High-Yield Bond ETF", "asset_class": "bond", "sector": "Junk Bond", "reputation": 0.68, "fallback": {"vol": 0.1, "ret": 0.05}},
+
+    # --- Additional crypto ---
+    {"symbol": "BNB-USD", "name": "BNB", "asset_class": "crypto", "sector": "Crypto", "reputation": 0.6, "fallback": {"vol": 0.7, "ret": 0.3}},
+    {"symbol": "XRP-USD", "name": "XRP", "asset_class": "crypto", "sector": "Crypto", "reputation": 0.5, "fallback": {"vol": 0.85, "ret": 0.4}},
+    {"symbol": "ADA-USD", "name": "Cardano", "asset_class": "crypto", "sector": "Crypto", "reputation": 0.5, "fallback": {"vol": 0.9, "ret": 0.1}},
+    {"symbol": "AVAX-USD", "name": "Avalanche", "asset_class": "crypto", "sector": "Crypto", "reputation": 0.45, "fallback": {"vol": 1.0, "ret": 0.2}},
+    {"symbol": "DOT-USD", "name": "Polkadot", "asset_class": "crypto", "sector": "Crypto", "reputation": 0.45, "fallback": {"vol": 0.9, "ret": -0.1}},
+    {"symbol": "MATIC-USD", "name": "Polygon", "asset_class": "crypto", "sector": "Crypto", "reputation": 0.42, "fallback": {"vol": 0.95, "ret": -0.15}},
+    {"symbol": "LTC-USD", "name": "Litecoin", "asset_class": "crypto", "sector": "Crypto", "reputation": 0.5, "fallback": {"vol": 0.8, "ret": 0.05}},
+    {"symbol": "LINK-USD", "name": "Chainlink", "asset_class": "crypto", "sector": "Crypto", "reputation": 0.48, "fallback": {"vol": 0.9, "ret": 0.25}},
+    {"symbol": "BCH-USD", "name": "Bitcoin Cash", "asset_class": "crypto", "sector": "Crypto", "reputation": 0.45, "fallback": {"vol": 0.85, "ret": 0.3}},
+    {"symbol": "SHIB-USD", "name": "Shiba Inu", "asset_class": "crypto", "sector": "Crypto", "reputation": 0.25, "fallback": {"vol": 1.2, "ret": -0.3}},
+
+    # --- CFDs (index / commodity / FX contracts-for-difference; demo data) ---
+    {"symbol": "US500", "name": "S&P 500 CFD", "asset_class": "cfd", "sector": "Index", "reputation": 0.8, "fallback": {"vol": 0.18, "ret": 0.12}},
+    {"symbol": "US100", "name": "Nasdaq 100 CFD", "asset_class": "cfd", "sector": "Index", "reputation": 0.78, "fallback": {"vol": 0.24, "ret": 0.18}},
+    {"symbol": "GER40", "name": "Germany 40 CFD", "asset_class": "cfd", "sector": "Index", "reputation": 0.72, "fallback": {"vol": 0.2, "ret": 0.1}},
+    {"symbol": "UK100", "name": "FTSE 100 CFD", "asset_class": "cfd", "sector": "Index", "reputation": 0.7, "fallback": {"vol": 0.17, "ret": 0.06}},
+    {"symbol": "JP225", "name": "Japan 225 CFD", "asset_class": "cfd", "sector": "Index", "reputation": 0.7, "fallback": {"vol": 0.2, "ret": 0.14}},
+    {"symbol": "XAUUSD", "name": "Gold CFD", "asset_class": "cfd", "sector": "Commodity", "reputation": 0.82, "fallback": {"vol": 0.15, "ret": 0.11}},
+    {"symbol": "XAGUSD", "name": "Silver CFD", "asset_class": "cfd", "sector": "Commodity", "reputation": 0.65, "fallback": {"vol": 0.3, "ret": 0.08}},
+    {"symbol": "USOIL", "name": "Crude Oil CFD", "asset_class": "cfd", "sector": "Commodity", "reputation": 0.6, "fallback": {"vol": 0.4, "ret": -0.05}},
+    {"symbol": "EURUSD", "name": "EUR/USD CFD", "asset_class": "cfd", "sector": "Forex", "reputation": 0.75, "fallback": {"vol": 0.09, "ret": 0.01}},
+    {"symbol": "GBPUSD", "name": "GBP/USD CFD", "asset_class": "cfd", "sector": "Forex", "reputation": 0.72, "fallback": {"vol": 0.11, "ret": 0.02}},
 ]
 
 

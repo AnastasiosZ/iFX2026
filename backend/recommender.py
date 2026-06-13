@@ -110,17 +110,35 @@ def load(instruments: list[dict]) -> None:
     INSTRUMENTS_BY_SYMBOL = {i["symbol"]: i for i in instruments}
 
 
+# Temperature for the persona-classification softmax. Persona vectors all live in
+# a similar region of the space, so raw cosine similarities bunch up in the high
+# 0.8s–0.9s and the resulting "match %" looked almost identical across types. We
+# instead turn the similarities into a probability distribution with a low
+# temperature, which sharpens the contrast so the dominant persona clearly leads
+# and the others fan out beneath it (req #19).
+PERSONA_SOFTMAX_TAU = 0.028
+
+
 def nearest_personas(user_vec: dict[str, float], k: int = K_PERSONAS) -> list[dict]:
     u = _vec(user_vec)
     scored = [(cosine(u, pv), p) for (p, pv) in _PERSONA_VECS]
     scored.sort(key=lambda x: x[0], reverse=True)
+
+    # Softmax over ALL personas' similarities -> a spread-out probability that the
+    # user belongs to each type. Subtract the max for numerical stability.
+    sims = [s for s, _ in scored]
+    top = sims[0] if sims else 0.0
+    exps = [math.exp((s - top) / PERSONA_SOFTMAX_TAU) for s in sims]
+    total = sum(exps) or 1.0
+    probs = [e / total for e in exps]
+
     out = []
-    for sim, p in scored[:k]:
+    for (sim, p), prob in list(zip(scored, probs))[:k]:
         out.append({
             "id": p["id"],
             "name": p["name"],
             "blurb": p["blurb"],
-            "match": round(_to_pct(sim)),
+            "match": round(prob * 100),
             "basket": p["basket"],
         })
     return out
@@ -234,7 +252,12 @@ _POSITIVE_HIGH = {
 
 def _explain(uvec: dict[str, float], inst: dict, content: float,
              basket: float, crowd: float) -> str:
-    """One-line, instrument-specific reason. Picks the trait that aligns most."""
+    """
+    A specific, instrument-grounded reason for the recommendation. Names the
+    trait that aligns, ties it to a concrete property of THIS instrument (its
+    volatility band, 1-year move and reputation), and adds the crowd signal —
+    so the user understands exactly why this card surfaced (req #7).
+    """
     ivec = inst["trait_vector"]
     # find the trait where user and instrument are both high and close
     best_trait, best_align = None, -1.0
@@ -242,13 +265,34 @@ def _explain(uvec: dict[str, float], inst: dict, content: float,
         align = (uvec[t] * ivec[t])  # both-high alignment
         if t in _POSITIVE_HIGH and align > best_align:
             best_align, best_trait = align, t
+
+    meta = inst.get("metadata", {})
+    risk_band = meta.get("risk_band")
+    ret = inst.get("period_return")
+    rep = inst.get("reputation", 0.5)
+
     parts = []
     if best_trait and best_align > 0.3:
-        parts.append(f"matches your {_POSITIVE_HIGH[best_trait]}")
+        # Tie the matched trait to a concrete instrument property.
+        if best_trait in ("risk_tolerance", "greed", "confidence") and risk_band in ("high", "very high"):
+            parts.append(f"its {risk_band}-risk profile speaks to your {_POSITIVE_HIGH[best_trait]}")
+        elif best_trait in ("risk_aversion", "patience", "discipline") and risk_band in ("low", "very low"):
+            parts.append(f"its {risk_band}-risk, steady profile suits your {_POSITIVE_HIGH[best_trait]}")
+        elif best_trait == "contrarian_tendency" and rep < 0.55:
+            parts.append(f"an out-of-favour name that fits your {_POSITIVE_HIGH[best_trait]}")
+        else:
+            parts.append(f"it matches your {_POSITIVE_HIGH[best_trait]}")
+
+    if ret is not None and ret >= 0.25:
+        parts.append(f"strong 1-year run of +{round(ret * 100)}%")
+    elif ret is not None and ret <= -0.1:
+        parts.append(f"beaten-down 1-year move of {round(ret * 100)}%")
+
     if crowd > 0.5:
-        parts.append("a favourite among users with your trader DNA")
+        parts.append("a favourite among users who share your trader DNA")
     elif basket > 0.4:
         parts.append("popular with traders like you")
+
     if not parts:
-        parts.append("a balanced fit for your profile")
+        parts.append("a balanced fit for your overall profile")
     return "; ".join(parts).capitalize()
