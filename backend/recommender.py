@@ -54,6 +54,15 @@ def cosine(a: np.ndarray, b: np.ndarray) -> float:
     return float(np.dot(a, b) / (na * nb))
 
 
+def pearson(a: np.ndarray, b: np.ndarray) -> float:
+    a = a - a.mean()
+    b = b - b.mean()
+    na, nb = np.linalg.norm(a), np.linalg.norm(b)
+    if na == 0 or nb == 0:
+        return 0.0
+    return float(np.dot(a, b) / (na * nb))
+
+
 @dataclass
 class Swipe:
     symbol: str
@@ -112,7 +121,7 @@ def load(instruments: list[dict]) -> None:
 
 def nearest_personas(user_vec: dict[str, float], k: int = K_PERSONAS) -> list[dict]:
     u = _vec(user_vec)
-    scored = [(cosine(u, pv), p) for (p, pv) in _PERSONA_VECS]
+    scored = [(pearson(u, pv), p) for (p, pv) in _PERSONA_VECS]
     scored.sort(key=lambda x: x[0], reverse=True)
     out = []
     for sim, p in scored[:k]:
@@ -138,7 +147,7 @@ def _collab_scores(user_vec: dict[str, float]) -> dict[str, float]:
     """
     u = _vec(user_vec)
     scored = sorted(
-        (( cosine(u, pv), p) for (p, pv) in _PERSONA_VECS),
+        ((pearson(u, pv), p) for (p, pv) in _PERSONA_VECS),
         key=lambda x: x[0], reverse=True,
     )[:K_PERSONAS]
     if not scored:

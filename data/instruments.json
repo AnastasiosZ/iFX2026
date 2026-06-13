@@ -1242,7 +1242,7 @@
         703.16,
         715.95,
         748.25,
-        760.05,
+        760.04,
         778.25,
         745.97,
         752.33,
@@ -2711,11 +2711,11 @@
         "stability": 55,
         "reputation": 70
       },
-      "annualized_volatility": 0.3591,
-      "period_return": -0.3949,
+      "annualized_volatility": 0.359,
+      "period_return": -0.3968,
       "reputation": 0.7,
       "metadata": {
-        "latest_price": 64192.37,
+        "latest_price": 63994.0,
         "period_high": 124752.53,
         "period_low": 60867.41,
         "range_position": 5,
@@ -2733,12 +2733,12 @@
         "text": "Suggested approach: treat BTC-USD as a measured position (\u22483\u20136%), scaled in over time. Horizon: long-term conviction with high volatility tolerance. Risk management: dollar-cost-average entries and rebalance on big swings."
       },
       "trait_vector": {
-        "risk_tolerance": 0.5091,
-        "risk_aversion": 0.5409,
+        "risk_tolerance": 0.509,
+        "risk_aversion": 0.541,
         "patience": 0.5256,
-        "impulsivity": 0.5693,
+        "impulsivity": 0.5692,
         "discipline": 0.5154,
-        "greed": 0.4142,
+        "greed": 0.4141,
         "confidence": 0.5295,
         "analytical_depth": 0.5,
         "contrarian_tendency": 0.51,
@@ -2819,11 +2819,11 @@
         "stability": 30,
         "reputation": 65
       },
-      "annualized_volatility": 0.5624,
-      "period_return": -0.3491,
+      "annualized_volatility": 0.5623,
+      "period_return": -0.3502,
       "reputation": 0.65,
       "metadata": {
-        "latest_price": 1679.03,
+        "latest_price": 1676.09,
         "period_high": 4831.35,
         "period_low": 1568.77,
         "range_position": 3,
@@ -2841,12 +2841,12 @@
         "text": "Suggested approach: treat ETH-USD as a measured position (\u22483\u20136%), scaled in over time. Horizon: long-term conviction with high volatility tolerance. Risk management: use a strict stop-loss and take partial profits into strength; avoid leverage."
       },
       "trait_vector": {
-        "risk_tolerance": 0.7124,
-        "risk_aversion": 0.3376,
+        "risk_tolerance": 0.7123,
+        "risk_aversion": 0.3377,
         "patience": 0.3985,
-        "impulsivity": 0.7218,
+        "impulsivity": 0.7217,
         "discipline": 0.4391,
-        "greed": 0.5921,
+        "greed": 0.592,
         "confidence": 0.6312,
         "analytical_depth": 0.5,
         "contrarian_tendency": 0.545,
@@ -2927,8 +2927,8 @@
         "stability": 17,
         "reputation": 30
       },
-      "annualized_volatility": 0.6646,
-      "period_return": -0.5103,
+      "annualized_volatility": 0.6644,
+      "period_return": -0.5128,
       "reputation": 0.3,
       "metadata": {
         "latest_price": 0.09,
@@ -2949,13 +2949,13 @@
         "text": "Suggested approach: treat DOGE-USD as a small, speculative slice of the portfolio (\u22481\u20133%). Horizon: long-term conviction with high volatility tolerance. Risk management: use a strict stop-loss and take partial profits into strength; avoid leverage."
       },
       "trait_vector": {
-        "risk_tolerance": 0.8146,
-        "risk_aversion": 0.2354,
+        "risk_tolerance": 0.8144,
+        "risk_aversion": 0.2356,
         "patience": 0.3347,
-        "impulsivity": 0.7984,
+        "impulsivity": 0.7983,
         "discipline": 0.4008,
-        "greed": 0.6815,
-        "confidence": 0.6823,
+        "greed": 0.6814,
+        "confidence": 0.6822,
         "analytical_depth": 0.5,
         "contrarian_tendency": 0.79,
         "herd_mentality": 0.41
@@ -3035,11 +3035,11 @@
         "stability": 25,
         "reputation": 45
       },
-      "annualized_volatility": 0.6033,
-      "period_return": -0.5411,
+      "annualized_volatility": 0.6032,
+      "period_return": -0.5422,
       "reputation": 0.45,
       "metadata": {
-        "latest_price": 68.2,
+        "latest_price": 68.04,
         "period_high": 247.64,
         "period_low": 62.19,
         "range_position": 3,
@@ -3057,13 +3057,13 @@
         "text": "Suggested approach: treat SOL-USD as a small, speculative slice of the portfolio (\u22481\u20133%). Horizon: long-term conviction with high volatility tolerance. Risk management: use a strict stop-loss and take partial profits into strength; avoid leverage."
       },
       "trait_vector": {
-        "risk_tolerance": 0.7533,
-        "risk_aversion": 0.2967,
-        "patience": 0.3729,
-        "impulsivity": 0.7525,
+        "risk_tolerance": 0.7532,
+        "risk_aversion": 0.2968,
+        "patience": 0.373,
+        "impulsivity": 0.7524,
         "discipline": 0.4238,
-        "greed": 0.6279,
-        "confidence": 0.6517,
+        "greed": 0.6278,
+        "confidence": 0.6516,
         "analytical_depth": 0.5,
         "contrarian_tendency": 0.685,
         "herd_mentality": 0.515
