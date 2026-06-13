@@ -1,1 +1,0 @@
-Submit to [ifxhack@cocooncreations.net](ifxhack@cocooncreations.net).
