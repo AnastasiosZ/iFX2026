@@ -31,12 +31,17 @@ OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "llama3.1")
 LLM_MODE = os.environ.get("FINTER_LLM", "auto")  # auto | ollama | off
 
-# The interviewer's persona. We keep it to 3-4 questions for a demo.
+# The interviewer's questions. A richer, open-ended set so the LLM (or the
+# heuristic fallback) has more signal to score the 10 traits from. The frontend
+# walks these one at a time; the whole transcript is scored at the end.
 INTERVIEWER_QUESTIONS = [
     "Tell me about a financial decision you're proud of — what made it feel right?",
     "When an investment moves against you, what actually goes through your head?",
     "Do you trust your own analysis more, or the wisdom of the crowd? Why?",
     "What matters more to you: the chance of a big win, or sleeping soundly at night?",
+    "Describe a time you broke your own rules with money. What happened?",
+    "When everyone is piling into something hot, what's your instinct?",
+    "How do you decide an investment is worth your time — gut, numbers, or a story?",
 ]
 
 _SCORING_INSTRUCTIONS = (

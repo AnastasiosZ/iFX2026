@@ -61,11 +61,20 @@ class Swipe:
     ts: float = field(default_factory=time.time)
 
 
+# Within the collaborative signal, how much comes from the baskets of the nearest
+# personas vs. from the actual likes of other USERS who share the user's persona.
+# Per the product spec: 40% of the collaborative score is the same-persona crowd.
+COLLAB_FROM_PERSONA_BASKET = 0.6
+COLLAB_FROM_PERSONA_USERS = 0.4
+
+
 @dataclass
 class UserState:
     """Everything we know about one user during a session."""
     base_vector: dict[str, float]            # from questionnaire + interview
     swipes: list[Swipe] = field(default_factory=list)
+    user_id: int | None = None               # DB user, once logged in
+    persona_id: str | None = None            # assigned persona (DB), for the crowd signal
 
     def effective_vector(self) -> dict[str, float]:
         """
@@ -147,15 +156,32 @@ def _collab_scores(user_vec: dict[str, float]) -> dict[str, float]:
     return weights
 
 
-def recommend(user: UserState, asset_class: str | None = None, limit: int = 20) -> list[dict]:
+def _normalize_counts(counts: dict[str, int]) -> dict[str, float]:
+    """Like-counts -> [0,1] by dividing by the max count (popularity within crowd)."""
+    if not counts:
+        return {}
+    top = max(counts.values())
+    if top <= 0:
+        return {}
+    return {sym: c / top for sym, c in counts.items()}
+
+
+def recommend(user: UserState, asset_class: str | None = None, limit: int = 20,
+              persona_like_counts: dict[str, int] | None = None) -> list[dict]:
     """
     Ranked recommendations for a user, optionally filtered to one asset class
     (the UI's section tabs). Each item carries its component scores and a short
     human-readable 'why', so the UI can explain every card.
+
+    The collaborative term blends two crowd signals:
+      - 60% the baskets of the personas nearest the user's vector, and
+      - 40% the instruments actually liked by OTHER users who share this user's
+        persona (`persona_like_counts`, symbol -> like count from the DB).
     """
     uvec = user.effective_vector()
     u = _vec(uvec)
-    collab = _collab_scores(uvec)
+    basket = _collab_scores(uvec)
+    crowd = _normalize_counts(persona_like_counts or {})
     swiped = {s.symbol for s in user.swipes}
 
     rows = []
@@ -164,7 +190,9 @@ def recommend(user: UserState, asset_class: str | None = None, limit: int = 20) 
             continue
         ivec = _vec(inst["trait_vector"])
         content = (cosine(u, ivec) + 1) / 2           # -> [0,1]
-        collab_s = collab.get(inst["symbol"], 0.0)
+        basket_s = basket.get(inst["symbol"], 0.0)
+        crowd_s = crowd.get(inst["symbol"], 0.0)
+        collab_s = COLLAB_FROM_PERSONA_BASKET * basket_s + COLLAB_FROM_PERSONA_USERS * crowd_s
         score = W_CONTENT * content + W_COLLAB * collab_s
         rows.append({
             "symbol": inst["symbol"],
@@ -175,12 +203,16 @@ def recommend(user: UserState, asset_class: str | None = None, limit: int = 20) 
             "scores": inst["scores"],
             "sparkline": inst["sparkline"],
             "period_return": inst["period_return"],
+            "annualized_volatility": inst.get("annualized_volatility"),
+            "metadata": inst.get("metadata", {}),
+            "strategy": inst.get("strategy", {}),
             "data_source": inst.get("data_source", "fallback"),
             "match": round(score * 100),
             "_content": content,
             "_collab": collab_s,
+            "_crowd": crowd_s,
             "already_swiped": inst["symbol"] in swiped,
-            "why": _explain(uvec, inst, content, collab_s),
+            "why": _explain(uvec, inst, content, basket_s, crowd_s),
         })
 
     rows.sort(key=lambda r: r["match"], reverse=True)
@@ -200,7 +232,8 @@ _POSITIVE_HIGH = {
 }
 
 
-def _explain(uvec: dict[str, float], inst: dict, content: float, collab: float) -> str:
+def _explain(uvec: dict[str, float], inst: dict, content: float,
+             basket: float, crowd: float) -> str:
     """One-line, instrument-specific reason. Picks the trait that aligns most."""
     ivec = inst["trait_vector"]
     # find the trait where user and instrument are both high and close
@@ -212,7 +245,9 @@ def _explain(uvec: dict[str, float], inst: dict, content: float, collab: float) 
     parts = []
     if best_trait and best_align > 0.3:
         parts.append(f"matches your {_POSITIVE_HIGH[best_trait]}")
-    if collab > 0.4:
+    if crowd > 0.5:
+        parts.append("a favourite among users with your trader DNA")
+    elif basket > 0.4:
         parts.append("popular with traders like you")
     if not parts:
         parts.append("a balanced fit for your profile")
