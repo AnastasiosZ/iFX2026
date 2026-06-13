@@ -11,7 +11,6 @@
     <!-- Header -->
     <header id="topbar">
       <div class="brand">Fin<span>ter</span></div>
-      <div id="llm-badge" class="badge" title="Active interview backend">…</div>
     </header>
 
     <!-- SCREEN: Welcome -->
@@ -72,9 +71,11 @@
     <section class="screen" id="screen-profile">
       <h2>Your trader DNA</h2>
       <div id="persona-cards"></div>
-      <canvas id="radar" width="280" height="280"></canvas>
+      <canvas id="radar" width="340" height="300"></canvas>
       <button class="primary" id="to-deck-btn">Start swiping →</button>
+      <button class="secondary" id="reevaluate-btn">Re-evaluate my traits</button>
       <button class="link-btn" id="logout-btn">Sign out</button>
+      <button class="link-btn danger" id="delete-account-btn">Delete my account</button>
     </section>
 
     <!-- SCREEN: Scenario quizzes (second-stage refinement) -->
@@ -94,6 +95,7 @@
     <section class="screen" id="screen-deck">
       <nav id="tabs"></nav>
       <div id="match-strip"></div>
+      <div id="swipe-meter" class="hidden"></div>
       <div id="deck"></div>
       <div id="swipe-controls">
         <button class="circle pass" id="btn-pass" title="Pass">✕</button>
@@ -105,9 +107,10 @@
     <!-- SCREEN: Likes summary -->
     <section class="screen" id="screen-likes">
       <h2>Your watchlist</h2>
+      <nav id="watchlist-filters"></nav>
       <div id="likes-list"></div>
       <button class="primary" id="back-to-deck">Keep swiping</button>
-      
+
     </section>
 
     <!-- Bottom nav -->
@@ -117,13 +120,13 @@
       <button data-screen="screen-profile">Profile</button>
       <button data-screen="screen-likes">Watchlist <span id="like-count">0</span></button>
     </nav>
-  </div>
 
-  <!-- Instrument detail modal -->
-  <div id="modal" class="hidden">
-    <div class="modal-card">
-      <button id="modal-close">✕</button>
-      <div id="modal-body"></div>
+    <!-- Instrument detail modal (inside #phone so it matches the app width) -->
+    <div id="modal" class="hidden">
+      <div class="modal-card">
+        <button id="modal-close">✕</button>
+        <div id="modal-body"></div>
+      </div>
     </div>
   </div>
   <script src="/static/app.js"></script>

@@ -38,6 +38,7 @@ from __future__ import annotations
 import json
 import threading
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query
@@ -46,18 +47,18 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import recommender, interview, db, auth
+from . import recommender, interview, db, auth, questionnaire, scenarios as scenarios_mod
 from .build_instruments import build, OUT_PATH
-from .questionnaire import public_questions, score_answers
-from .scenarios import public_scenarios, apply_scenarios
+from .questionnaire import score_answers
+from .scenarios import apply_scenarios
 from .traits import sanitize_vector, empty_vector, TRAIT_DESCRIPTIONS
 
 ROOT = Path(__file__).resolve().parent.parent
 FRONTEND = ROOT / "frontend"
 
-# Rebuild the instrument cache from live market data this often while at least
-# one user is logged in (req: "every five minutes he is logged in").
-REFRESH_INTERVAL_S = 300
+# Daily swipe budget. A user gets this many swipes per (UTC) day; the counter
+# ticks down as they burn through cards and resets the next day (req #17).
+DAILY_SWIPE_LIMIT = 20
 
 app = FastAPI(title="Finter API", version="0.2.0")
 app.add_middleware(
@@ -96,12 +97,9 @@ def _rebuild_instruments(reason: str) -> None:
         _rebuild_lock.release()
 
 
-def _refresh_loop() -> None:
-    """Background heartbeat: refresh live data every REFRESH_INTERVAL while logged in."""
-    while True:
-        time.sleep(REFRESH_INTERVAL_S)
-        if SESSIONS:  # only spend network when someone is actually using the app
-            _rebuild_instruments("periodic 5-min refresh")
+def _today() -> str:
+    """Current UTC date as YYYY-MM-DD — the key for the daily swipe counter."""
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
 
 @app.on_event("startup")
@@ -109,7 +107,7 @@ def _startup() -> None:
     db.init_db()
     instruments = _load_instruments()
     recommender.load(instruments)
-    threading.Thread(target=_refresh_loop, daemon=True).start()
+    # Instrument data is (re)built on each login only (req #16); no periodic refresh.
     print(f"[app] loaded {len(instruments)} instruments; LLM backend: {interview.backend_name()}")
 
 
@@ -237,12 +235,14 @@ def health():
 
 @app.get("/api/questions")
 def questions():
-    return {"questions": public_questions()}
+    """A fresh, randomly-chosen subset of the predefined onboarding questions."""
+    return {"questions": questionnaire.to_public(questionnaire.random_pool(8))}
 
 
 @app.get("/api/scenarios")
 def scenarios():
-    return {"scenarios": public_scenarios()}
+    """A fresh, randomly-chosen handful of the 20 predefined Quizzes-tab scenarios."""
+    return {"scenarios": scenarios_mod.to_public(scenarios_mod.random_pool())}
 
 
 @app.get("/api/asset_classes")
@@ -283,6 +283,10 @@ def submit_interview(body: InterviewSubmit):
     near = recommender.nearest_personas(state.base_vector)
     state.persona_id = near[0]["id"] if near else None
     _persist_profile(state)
+    # Stamp the re-evaluation gate: completing the interview counts as a full
+    # trait evaluation, and the user may only run one per day (req #18).
+    if state.user_id is not None:
+        db.set_last_eval_day(state.user_id, _today())
     return {
         "vector": state.base_vector,
         "backend": result["backend"],
@@ -315,7 +319,20 @@ def recommend(session_id: str, asset_class: str | None = Query(default=None), li
     )
     if state.user_id is not None and items:
         db.log_recommendations(state.user_id, items)
-    return {"items": items, "effective_vector": state.effective_vector()}
+    return {
+        "items": items,
+        "effective_vector": state.effective_vector(),
+        "swipes_remaining": _swipes_remaining(state),
+        "daily_swipe_limit": DAILY_SWIPE_LIMIT,
+    }
+
+
+def _swipes_remaining(state: recommender.UserState) -> int:
+    """How many swipes the user has left today (req #17). Unlimited for anon."""
+    if state.user_id is None:
+        return DAILY_SWIPE_LIMIT
+    used = db.get_swipe_count_today(state.user_id, _today())
+    return max(DAILY_SWIPE_LIMIT - used, 0)
 
 
 @app.post("/api/swipe")
@@ -323,8 +340,17 @@ def swipe(body: SwipeIn):
     state = _require_session(body.session_id)
     if body.symbol not in recommender.INSTRUMENTS_BY_SYMBOL:
         raise HTTPException(status_code=400, detail="Unknown symbol")
+
+    # Enforce the daily swipe budget before recording anything.
+    if state.user_id is not None and _swipes_remaining(state) <= 0:
+        raise HTTPException(
+            status_code=429,
+            detail="You've used all your swipes for today. Come back tomorrow!",
+        )
+
     state.swipes.append(recommender.Swipe(symbol=body.symbol, liked=body.liked))
     if state.user_id is not None:
+        db.increment_swipe_count(state.user_id, _today())
         if body.liked:
             db.add_like(state.user_id, body.symbol)
         else:
@@ -332,6 +358,56 @@ def swipe(body: SwipeIn):
     return {
         "ok": True,
         "n_swipes": len(state.swipes),
+        "swipes_remaining": _swipes_remaining(state),
+        "effective_vector": state.effective_vector(),
+        "personas": recommender.nearest_personas(state.effective_vector()),
+    }
+
+
+class WatchlistRemoveIn(BaseModel):
+    session_id: str
+    symbol: str
+
+
+@app.get("/api/watchlist")
+def watchlist(session_id: str):
+    """
+    The user's liked instruments, scored against their CURRENT profile so the UI
+    can sort them highest-match first and filter by asset class (req #21). Each
+    item carries its asset_class, match % and the personalized 'why'.
+    """
+    state = _require_session(session_id)
+    if state.user_id is None:
+        return {"items": []}
+    liked = set(db.get_user_likes(state.user_id))
+    if not liked:
+        return {"items": []}
+    persona_id = _persona_for(state)
+    crowd = db.likes_by_persona(persona_id, exclude_user_id=state.user_id)
+    scored = recommender.recommend(
+        state, asset_class=None, limit=len(recommender.INSTRUMENTS),
+        persona_like_counts=crowd,
+    )
+    items = [it for it in scored if it["symbol"] in liked]
+    items.sort(key=lambda r: r["match"], reverse=True)
+    return {"items": items}
+
+
+@app.post("/api/watchlist/remove")
+def watchlist_remove(body: WatchlistRemoveIn):
+    """
+    Remove an instrument from the watchlist. This drops the persisted like AND
+    the in-session 'liked' swipe, so the user's effective trait vector is no
+    longer nudged toward it and the instrument can reappear in Discover
+    (reqs #10 & #15).
+    """
+    state = _require_session(body.session_id)
+    if state.user_id is not None:
+        db.remove_like(state.user_id, body.symbol)
+    # Drop any liked swipe(s) for this symbol so the trait nudge is undone.
+    state.swipes = [s for s in state.swipes if not (s.symbol == body.symbol and s.liked)]
+    return {
+        "ok": True,
         "effective_vector": state.effective_vector(),
         "personas": recommender.nearest_personas(state.effective_vector()),
     }
@@ -349,13 +425,33 @@ def instrument(symbol: str):
 def profile(session_id: str):
     state = _require_session(session_id)
     eff = state.effective_vector()
+    can_reevaluate = True
+    if state.user_id is not None:
+        can_reevaluate = db.get_last_eval_day(state.user_id) != _today()
     return {
         "base_vector": state.base_vector,
         "effective_vector": eff,
         "trait_descriptions": TRAIT_DESCRIPTIONS,
         "personas": recommender.nearest_personas(eff),
         "n_swipes": len(state.swipes),
+        "swipes_remaining": _swipes_remaining(state),
+        "daily_swipe_limit": DAILY_SWIPE_LIMIT,
+        "can_reevaluate": can_reevaluate,
     }
+
+
+class DeleteAccountIn(BaseModel):
+    session_id: str
+
+
+@app.post("/api/auth/delete")
+def delete_account(body: DeleteAccountIn):
+    """Permanently delete the logged-in user and all their data (req #22)."""
+    state = _require_session(body.session_id)
+    if state.user_id is not None:
+        db.delete_user(state.user_id)
+    SESSIONS.pop(body.session_id, None)
+    return {"ok": True}
 
 
 # ---------------------------------------------------------------- static frontend
