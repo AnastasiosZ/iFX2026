@@ -1,1 +1,18 @@
-*.md
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Secrets / local config
+.env
+
+# Generated data cache (rebuilt via `python -m backend.build_instruments`)
+data/instruments.json
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
