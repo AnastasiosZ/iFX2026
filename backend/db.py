@@ -93,6 +93,14 @@ CREATE TABLE IF NOT EXISTS recommendations (
     created_at REAL NOT NULL
 );
 
+-- Per-user, per-day swipe counter that powers the daily swipe limit.
+CREATE TABLE IF NOT EXISTS daily_swipes (
+    user_id INTEGER NOT NULL,
+    day     TEXT NOT NULL,           -- UTC date, YYYY-MM-DD
+    count   INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (user_id, day)
+);
+
 CREATE INDEX IF NOT EXISTS idx_likes_user ON likes(user_id);
 CREATE INDEX IF NOT EXISTS idx_likes_symbol ON likes(symbol);
 CREATE INDEX IF NOT EXISTS idx_users_persona ON users(persona_id);
@@ -104,9 +112,18 @@ def init_db() -> None:
     with _lock:
         conn = _connect()
         conn.executescript(_SCHEMA)
+        _migrate(conn)
         conn.commit()
         _seed_personas()
         _seed_dummy_users()
+
+
+def _migrate(conn: sqlite3.Connection) -> None:
+    """Lightweight, idempotent column adds for DBs created before a feature landed."""
+    cols = {r["name"] for r in conn.execute("PRAGMA table_info(users)").fetchall()}
+    if "last_eval_day" not in cols:
+        # Tracks the UTC day of the user's last full trait re-evaluation (once/day).
+        conn.execute("ALTER TABLE users ADD COLUMN last_eval_day TEXT")
 
 
 # ---------------------------------------------------------------- seeding
@@ -209,7 +226,57 @@ def _row_to_user(row: sqlite3.Row | None) -> dict | None:
         "persona_id": row["persona_id"],
         "base_vector": json.loads(row["base_vector"]) if row["base_vector"] else None,
         "is_dummy": bool(row["is_dummy"]),
+        "last_eval_day": (row["last_eval_day"] if "last_eval_day" in row.keys() else None),
     }
+
+
+def delete_user(user_id: int) -> None:
+    """Remove a user and everything tied to them (likes, recs, swipe counters)."""
+    with _lock:
+        conn = _connect()
+        conn.execute("DELETE FROM likes WHERE user_id=?", (user_id,))
+        conn.execute("DELETE FROM recommendations WHERE user_id=?", (user_id,))
+        conn.execute("DELETE FROM daily_swipes WHERE user_id=?", (user_id,))
+        conn.execute("DELETE FROM users WHERE id=?", (user_id,))
+        conn.commit()
+
+
+# ---------------------------------------------------------------- re-evaluation gate
+def get_last_eval_day(user_id: int) -> str | None:
+    with _lock:
+        row = _connect().execute(
+            "SELECT last_eval_day FROM users WHERE id=?", (user_id,)
+        ).fetchone()
+        return row["last_eval_day"] if row else None
+
+
+def set_last_eval_day(user_id: int, day: str) -> None:
+    with _lock:
+        conn = _connect()
+        conn.execute("UPDATE users SET last_eval_day=? WHERE id=?", (day, user_id))
+        conn.commit()
+
+
+# ---------------------------------------------------------------- daily swipe limit
+def get_swipe_count_today(user_id: int, day: str) -> int:
+    with _lock:
+        row = _connect().execute(
+            "SELECT count FROM daily_swipes WHERE user_id=? AND day=?", (user_id, day)
+        ).fetchone()
+        return row["count"] if row else 0
+
+
+def increment_swipe_count(user_id: int, day: str) -> int:
+    """Bump today's swipe counter for a user and return the new total."""
+    with _lock:
+        conn = _connect()
+        conn.execute(
+            "INSERT INTO daily_swipes(user_id, day, count) VALUES (?,?,1) "
+            "ON CONFLICT(user_id, day) DO UPDATE SET count = count + 1",
+            (user_id, day),
+        )
+        conn.commit()
+        return get_swipe_count_today(user_id, day)
 
 
 # ---------------------------------------------------------------- likes
