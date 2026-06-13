@@ -111,7 +111,9 @@ button.primary:disabled { opacity: 0.5; }
 .persona .ring span { background: var(--card); width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; }
 .persona .meta b { font-size: 15px; }
 .persona .meta p { font-size: 12px; color: var(--muted); margin-top: 2px; }
-#radar { display: block; margin: 0 auto 20px; }
+/* Wider canvas + responsive scaling so long trait labels (e.g. "Impulsiveness")
+   are not clipped at the edge (req #2). */
+#radar { display: block; margin: 0 -8px 20px; max-width: calc(100% + 16px); height: auto; }
 
 /* Tabs */
 #tabs { display: flex; gap: 8px; overflow-x: auto; padding: 6px 0 12px; flex: 0 0 auto; }
@@ -224,7 +226,7 @@ button.primary:disabled { opacity: 0.5; }
 #modal { position: absolute; inset: 0; background: rgba(0,0,0,0.7); display: grid; place-items: stretch; padding: 0; z-index: 50; }
 #modal.hidden { display: none; }
 .modal-card { background: var(--bg); border-radius: 0; width: 100%; height: 100%; max-height: 100%; overflow-y: auto; position: relative; padding-bottom: 24px; }
-#modal-close { position: absolute; top: 12px; right: 12px; background: var(--card2); border: none; color: var(--text); width: 32px; height: 32px; border-radius: 50%; cursor: pointer; z-index: 2; }
+#modal-close { position: absolute; top: 12px; right: 12px; background: var(--card2); border: none; color: var(--text); width: 32px; height: 32px; border-radius: 50%; cursor: pointer; z-index: 2; display: grid; place-items: center; line-height: 1; font-size: 14px; padding: 0; }
 
 .hidden { display: none !important; }
 
@@ -295,15 +297,26 @@ html { scrollbar-width: none; -ms-overflow-style: none; }
 *::-webkit-scrollbar { width: 0; height: 0; display: none; }
 * { scrollbar-width: none; }
 
-/* Selectable instrument text (#8) */
-.modal-card, .modal-card .desc, .why-box, .meta-grid, .strat-thesis, .strat-list,
-.card .desc, .card .why, .card .nm, .card .sym {
-  -webkit-user-select: text; user-select: text;
-}
+/* Nothing should be selectable (req #1) — except form fields the user types into */
+* { -webkit-user-select: none; user-select: none; }
+input, textarea { -webkit-user-select: text; user-select: text; }
 
 /* Compliance line sits at the very bottom, right after "why" (#7) */
 .compliance { padding: 4px 18px 8px; }
 .why-section { padding-bottom: 6px; }
+
+/* Detail (info) modal: instrument name as the heading (req #5) and consistent
+   left/right side margins for all sections (req #4). */
+.modal-card .inst-name { font-size: 24px; font-weight: 800; letter-spacing: -0.4px; line-height: 1.2; }
+.modal-card .card-top,
+.modal-card .sliders,
+.modal-card .desc,
+.modal-card .modal-section,
+.modal-card .chart-wrap,
+.modal-card .range-tabs { padding-left: 24px; padding-right: 24px; }
+/* Ranged change line under the graph reflects the selected time range (req #6). */
+#modal-change .pos { color: var(--green); }
+#modal-change .neg { color: var(--accent); }
 
 /* Daily swipe meter (#17) */
 #swipe-meter {

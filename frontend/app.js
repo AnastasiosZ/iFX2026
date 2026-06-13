@@ -554,7 +554,6 @@ function updateLikeCount() {
 async function openModal(symbol) {
   const inst = await api(`/api/instrument/${symbol}`);
   const item = S.seen[symbol];                 // carries the user-specific "why"
-  const ret = (inst.period_return*100).toFixed(1);
   const md = inst.metadata || {};
   const strat = inst.strategy || {};
 
@@ -588,7 +587,7 @@ async function openModal(symbol) {
 
   $("modal-body").innerHTML = `
     <div class="card-top" style="border-radius:0">
-      <div><div class="sym">${inst.symbol}</div><div class="nm">${inst.name} · ${inst.sector}</div></div>
+      <div><h2 class="inst-name">${inst.name}</h2><div class="nm">${inst.symbol} · ${inst.sector}</div></div>
       <div class="klass">${inst.asset_class}</div>
     </div>
     <div class="chart-wrap">
@@ -596,7 +595,7 @@ async function openModal(symbol) {
       <div class="chart-area" id="chart-area"></div>
       <div class="chart-tip hidden" id="chart-tip"></div>
     </div>
-    <div class="ret" style="padding:0 18px 12px">1-year change: <b>${ret>=0?"+":""}${ret}%</b></div>
+    <div class="ret" id="modal-change" style="padding:0 24px 12px"></div>
     <div class="sliders">
       ${sliderRow("Volatility", inst.scores.volatility, "fill-vol")}
       ${sliderRow("Stability", inst.scores.stability, "fill-stab")}
@@ -613,6 +612,7 @@ async function openModal(symbol) {
 
 /* Interactive price chart: hover/drag to read prices, switch time ranges (#6). */
 const RANGE_FRAC = { "1M": 1 / 12, "3M": 0.25, "6M": 0.5, "1Y": 1 };
+const RANGE_LABEL = { "1M": "1-month", "3M": "3-month", "6M": "6-month", "1Y": "1-year" };
 
 function setupChart(points, periodReturn) {
   const tabs = $("range-tabs");
@@ -637,6 +637,8 @@ function drawChart(allPoints, rangeId) {
   const area = $("chart-area");
   if (!allPoints || allPoints.length < 2) {
     area.innerHTML = `<div class="chart-empty">No price data available.</div>`;
+    const changeEl = document.getElementById("modal-change");
+    if (changeEl) changeEl.textContent = "";
     return;
   }
   const frac = RANGE_FRAC[rangeId] || 1;
@@ -650,6 +652,12 @@ function drawChart(allPoints, rangeId) {
   const xy = points.map((p, i) => [pad + i * stepX, pad + (h - pad * 2) * (1 - (p - min) / span)]);
   const coords = xy.map((c) => `${c[0].toFixed(1)},${c[1].toFixed(1)}`);
   const color = winRet >= 0 ? "#2ecc71" : "#ff5a7e";
+  // Surface the change for the *selected* range below the graph (req #6).
+  const changeEl = document.getElementById("modal-change");
+  if (changeEl) {
+    const pct = (winRet * 100).toFixed(1);
+    changeEl.innerHTML = `${RANGE_LABEL[rangeId] || "1-year"} change: <b class="${winRet >= 0 ? "pos" : "neg"}">${winRet >= 0 ? "+" : ""}${pct}%</b>`;
+  }
   const areaPath = `M${coords[0]} L${coords.join(" L")} L${xy[xy.length - 1][0].toFixed(1)},${h} L${pad},${h} Z`;
   area.innerHTML = `
     <svg class="chart-svg" viewBox="0 0 ${w} ${h}" width="100%" height="${h}" preserveAspectRatio="none">
