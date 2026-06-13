@@ -88,38 +88,60 @@ def _project_to_traits(vol: float, ret: float, reputation: float, asset_class: s
     Map instrument stats into the personality space. The mapping encodes the
     product thesis: which kind of trader an instrument 'fits'. Values in [0,1].
 
-    Intuition:
-      - high volatility  -> appeals to risk_tolerance, greed, impulsivity, confidence
-      - low volatility   -> appeals to risk_aversion, patience, discipline
-      - high reputation  -> appeals to herd_mentality (everyone owns it), risk_aversion
-      - low reputation   -> appeals to contrarian_tendency
-      - bonds/short govt -> strongly patient / risk-averse / disciplined
+    Three INDEPENDENT signals drive the projection, so the resulting vectors
+    occupy real volume in the trait space rather than collapsing onto a single
+    volatility axis (the failure mode of the original all-vol mapping):
+
+      1. volatility (v)  -> risk_tolerance/aversion, impulsivity, greed, confidence,
+                            and (inversely) patience/discipline. The dominant axis,
+                            as it should be: vol is what makes an instrument risky.
+      2. momentum (ret)  -> a HOT instrument (big positive return) is crowded and
+                            chased: drives herd_mentality, greed, impulsivity. A
+                            BEATEN instrument (negative return) is out-of-favor:
+                            drives contrarian_tendency and patience. This is what
+                            decouples herd from contrarian (they were pure mirrors
+                            of reputation before).
+      3. asset_class     -> sets the baseline for patience, discipline, and
+                            analytical_depth. Single-name stocks reward bottom-up
+                            research (high analytical_depth); broad index ETFs are
+                            the explicit choice NOT to analyse (low); bonds are
+                            patient/disciplined by nature; crypto is impatient and
+                            sentiment-driven. This is what brings analytical_depth
+                            to life — it was hardcoded to 0.5 (a dead dimension).
     """
-    # Normalize volatility onto ~[0,1] (1.0 vol annualized is very high).
+    # Normalize volatility onto ~[0,1] (0.8 vol annualized is already very high).
     v = clamp01(vol / 0.8)
     rep = clamp01(reputation)
+    # Momentum split into "hot" (chased) and "beaten" (out-of-favour) components.
+    up = clamp01(ret / 0.4)      # +40% over the period -> fully "hot"
+    dn = clamp01(-ret / 0.25)    # -25% over the period -> fully "beaten"
+
+    # Asset-class baselines for traits that price stats alone don't capture.
+    patience_base = {"bond": 0.90, "etf": 0.70, "stock": 0.60, "crypto": 0.45}.get(asset_class, 0.60)
+    discipline_base = {"bond": 0.80, "etf": 0.70, "stock": 0.60, "crypto": 0.45}.get(asset_class, 0.60)
+    if asset_class == "stock":      # single names reward fundamental analysis; quality most of all
+        analytical = 0.50 + 0.30 * rep
+    elif asset_class == "etf":      # broad index = anti-analysis; thematic/active (low rep) needs a view
+        analytical = 0.60 - 0.35 * rep
+    elif asset_class == "bond":     # rates are an allocation call; junk credit needs more homework
+        analytical = 0.30 + 0.25 * (1.0 - rep)
+    elif asset_class == "crypto":   # BTC/ETH carry a thesis; memecoins are pure sentiment
+        analytical = 0.20 + 0.30 * rep
+    else:
+        analytical = 0.50
 
     vec = {
-        "risk_tolerance": clamp01(0.15 + 0.8 * v),
-        "risk_aversion": clamp01(0.9 - 0.8 * v),
-        "patience": clamp01(0.75 - 0.5 * v),
-        "impulsivity": clamp01(0.2 + 0.6 * v),
-        "discipline": clamp01(0.65 - 0.3 * v),
-        "greed": clamp01(0.1 + 0.7 * v + 0.2 * clamp01(ret)),
-        "confidence": clamp01(0.35 + 0.4 * v),
-        "analytical_depth": 0.5,  # neutral; not strongly implied by price stats
-        "contrarian_tendency": clamp01(0.2 + 0.7 * (1.0 - rep)),
-        "herd_mentality": clamp01(0.2 + 0.7 * rep),
+        "risk_tolerance": clamp01(0.15 + 0.80 * v),
+        "risk_aversion": clamp01(0.90 - 0.80 * v),
+        "patience": clamp01(patience_base - 0.40 * v + 0.15 * dn),
+        "impulsivity": clamp01(0.20 + 0.45 * v + 0.25 * up),
+        "discipline": clamp01(discipline_base - 0.25 * v),
+        "greed": clamp01(0.10 + 0.50 * v + 0.35 * up),
+        "confidence": clamp01(0.35 + 0.30 * v + 0.15 * up),
+        "analytical_depth": clamp01(analytical),
+        "contrarian_tendency": clamp01(0.15 + 0.45 * (1.0 - rep) + 0.35 * dn),
+        "herd_mentality": clamp01(0.15 + 0.40 * rep + 0.40 * up),
     }
-
-    if asset_class == "bond":
-        vec["patience"] = clamp01(vec["patience"] + 0.25)
-        vec["risk_aversion"] = clamp01(vec["risk_aversion"] + 0.2)
-        vec["discipline"] = clamp01(vec["discipline"] + 0.2)
-        vec["greed"] = clamp01(vec["greed"] - 0.2)
-    if asset_class == "crypto":
-        vec["contrarian_tendency"] = clamp01(vec["contrarian_tendency"] + 0.1)
-        vec["impulsivity"] = clamp01(vec["impulsivity"] + 0.1)
 
     return {t: round(vec[t], 4) for t in TRAITS}
 

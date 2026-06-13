@@ -35,14 +35,14 @@
       "trait_vector": {
         "risk_tolerance": 0.3761,
         "risk_aversion": 0.6739,
-        "patience": 0.6087,
-        "impulsivity": 0.3696,
-        "discipline": 0.5652,
-        "greed": 0.3954,
-        "confidence": 0.4631,
-        "analytical_depth": 0.5,
-        "contrarian_tendency": 0.235,
-        "herd_mentality": 0.865
+        "patience": 0.4869,
+        "impulsivity": 0.5772,
+        "discipline": 0.5293,
+        "greed": 0.5913,
+        "confidence": 0.5848,
+        "analytical_depth": 0.785,
+        "contrarian_tendency": 0.1725,
+        "herd_mentality": 0.93
       },
       "sparkline": [
         195.67,
@@ -143,14 +143,14 @@
       "trait_vector": {
         "risk_tolerance": 0.4069,
         "risk_aversion": 0.6431,
-        "patience": 0.5894,
-        "impulsivity": 0.3927,
-        "discipline": 0.5537,
-        "greed": 0.3248,
-        "confidence": 0.4785,
-        "analytical_depth": 0.5,
-        "contrarian_tendency": 0.235,
-        "herd_mentality": 0.865
+        "patience": 0.574,
+        "impulsivity": 0.3445,
+        "discipline": 0.5197,
+        "greed": 0.2606,
+        "confidence": 0.4463,
+        "analytical_depth": 0.785,
+        "contrarian_tendency": 0.4115,
+        "herd_mentality": 0.53
       },
       "sparkline": [
         471.2,
@@ -251,14 +251,14 @@
       "trait_vector": {
         "risk_tolerance": 0.4401,
         "risk_aversion": 0.6099,
-        "patience": 0.5687,
-        "impulsivity": 0.4176,
-        "discipline": 0.5412,
-        "greed": 0.5538,
-        "confidence": 0.495,
-        "analytical_depth": 0.5,
-        "contrarian_tendency": 0.256,
-        "herd_mentality": 0.844
+        "patience": 0.455,
+        "impulsivity": 0.6132,
+        "discipline": 0.5093,
+        "greed": 0.6313,
+        "confidence": 0.6088,
+        "analytical_depth": 0.776,
+        "contrarian_tendency": 0.186,
+        "herd_mentality": 0.918
       },
       "sparkline": [
         174.17,
@@ -359,14 +359,14 @@
       "trait_vector": {
         "risk_tolerance": 0.3189,
         "risk_aversion": 0.7311,
-        "patience": 0.6444,
-        "impulsivity": 0.3267,
-        "discipline": 0.5866,
-        "greed": 0.3621,
-        "confidence": 0.4345,
-        "analytical_depth": 0.5,
-        "contrarian_tendency": 0.27,
-        "herd_mentality": 0.83
+        "patience": 0.5155,
+        "impulsivity": 0.545,
+        "discipline": 0.5472,
+        "greed": 0.5556,
+        "confidence": 0.5634,
+        "analytical_depth": 0.77,
+        "contrarian_tendency": 0.195,
+        "herd_mentality": 0.91
       },
       "sparkline": [
         153.27,
@@ -467,14 +467,14 @@
       "trait_vector": {
         "risk_tolerance": 0.3375,
         "risk_aversion": 0.7125,
-        "patience": 0.6328,
-        "impulsivity": 0.3406,
-        "discipline": 0.5797,
-        "greed": 0.2641,
-        "confidence": 0.4438,
-        "analytical_depth": 0.5,
-        "contrarian_tendency": 0.284,
-        "herd_mentality": 0.816
+        "patience": 0.5301,
+        "impulsivity": 0.3055,
+        "discipline": 0.5414,
+        "greed": 0.2172,
+        "confidence": 0.4203,
+        "analytical_depth": 0.764,
+        "contrarian_tendency": 0.2596,
+        "herd_mentality": 0.502
       },
       "sparkline": [
         155.8,
@@ -575,14 +575,14 @@
       "trait_vector": {
         "risk_tolerance": 0.317,
         "risk_aversion": 0.733,
-        "patience": 0.6456,
-        "impulsivity": 0.3253,
-        "discipline": 0.5874,
-        "greed": 0.2839,
-        "confidence": 0.4335,
-        "analytical_depth": 0.5,
-        "contrarian_tendency": 0.291,
-        "herd_mentality": 0.809
+        "patience": 0.5165,
+        "impulsivity": 0.4118,
+        "discipline": 0.5478,
+        "greed": 0.3694,
+        "confidence": 0.4834,
+        "analytical_depth": 0.761,
+        "contrarian_tendency": 0.2085,
+        "herd_mentality": 0.6866
       },
       "sparkline": [
         69.51,
@@ -683,14 +683,14 @@
       "trait_vector": {
         "risk_tolerance": 0.2946,
         "risk_aversion": 0.7554,
-        "patience": 0.6596,
-        "impulsivity": 0.3085,
-        "discipline": 0.5958,
-        "greed": 0.2272,
-        "confidence": 0.4223,
-        "analytical_depth": 0.5,
-        "contrarian_tendency": 0.249,
-        "herd_mentality": 0.851
+        "patience": 0.5277,
+        "impulsivity": 0.2835,
+        "discipline": 0.5548,
+        "greed": 0.1935,
+        "confidence": 0.4055,
+        "analytical_depth": 0.779,
+        "contrarian_tendency": 0.1815,
+        "herd_mentality": 0.5255
       },
       "sparkline": [
         487.54,
@@ -791,14 +791,14 @@
       "trait_vector": {
         "risk_tolerance": 0.3686,
         "risk_aversion": 0.6814,
-        "patience": 0.6134,
-        "impulsivity": 0.3639,
-        "discipline": 0.568,
-        "greed": 0.3381,
-        "confidence": 0.4593,
-        "analytical_depth": 0.5,
-        "contrarian_tendency": 0.305,
-        "herd_mentality": 0.795
+        "patience": 0.4907,
+        "impulsivity": 0.4692,
+        "discipline": 0.5317,
+        "greed": 0.4414,
+        "confidence": 0.5197,
+        "analytical_depth": 0.755,
+        "contrarian_tendency": 0.2175,
+        "herd_mentality": 0.724
       },
       "sparkline": [
         259.9,
@@ -899,14 +899,14 @@
       "trait_vector": {
         "risk_tolerance": 0.4999,
         "risk_aversion": 0.5501,
-        "patience": 0.5313,
-        "impulsivity": 0.4624,
-        "discipline": 0.5188,
-        "greed": 0.4956,
-        "confidence": 0.5249,
-        "analytical_depth": 0.5,
-        "contrarian_tendency": 0.27,
-        "herd_mentality": 0.83
+        "patience": 0.4251,
+        "impulsivity": 0.6468,
+        "discipline": 0.4907,
+        "greed": 0.6687,
+        "confidence": 0.6312,
+        "analytical_depth": 0.77,
+        "contrarian_tendency": 0.195,
+        "herd_mentality": 0.91
       },
       "sparkline": [
         141.78,
@@ -1007,14 +1007,14 @@
       "trait_vector": {
         "risk_tolerance": 0.5955,
         "risk_aversion": 0.4545,
-        "patience": 0.4716,
-        "impulsivity": 0.5341,
-        "discipline": 0.4829,
-        "greed": 0.5397,
-        "confidence": 0.5728,
-        "analytical_depth": 0.5,
-        "contrarian_tendency": 0.354,
-        "herd_mentality": 0.746
+        "patience": 0.3772,
+        "impulsivity": 0.6065,
+        "discipline": 0.4608,
+        "greed": 0.5966,
+        "confidence": 0.6106,
+        "analytical_depth": 0.734,
+        "contrarian_tendency": 0.249,
+        "herd_mentality": 0.7114
       },
       "sparkline": [
         325.31,
@@ -1115,14 +1115,14 @@
       "trait_vector": {
         "risk_tolerance": 0.8062,
         "risk_aversion": 0.2438,
-        "patience": 0.3398,
-        "impulsivity": 0.6922,
-        "discipline": 0.4039,
-        "greed": 0.8742,
-        "confidence": 0.6781,
-        "analytical_depth": 0.5,
-        "contrarian_tendency": 0.34,
-        "herd_mentality": 0.76
+        "patience": 0.2719,
+        "impulsivity": 0.8191,
+        "discipline": 0.3949,
+        "greed": 0.8602,
+        "confidence": 0.7461,
+        "analytical_depth": 0.74,
+        "contrarian_tendency": 0.24,
+        "herd_mentality": 0.87
       },
       "sparkline": [
         116.16,
@@ -1223,14 +1223,14 @@
       "trait_vector": {
         "risk_tolerance": 0.5064,
         "risk_aversion": 0.5436,
-        "patience": 0.5272,
-        "impulsivity": 0.4673,
-        "discipline": 0.5163,
-        "greed": 0.4119,
-        "confidence": 0.5282,
-        "analytical_depth": 0.5,
-        "contrarian_tendency": 0.326,
-        "herd_mentality": 0.774
+        "patience": 0.5221,
+        "impulsivity": 0.4005,
+        "discipline": 0.4886,
+        "greed": 0.3228,
+        "confidence": 0.4837,
+        "analytical_depth": 0.746,
+        "contrarian_tendency": 0.465,
+        "herd_mentality": 0.478
       },
       "sparkline": [
         680.75,
@@ -1242,7 +1242,7 @@
         703.16,
         715.95,
         748.25,
-        760.04,
+        760.05,
         778.25,
         745.97,
         752.33,
@@ -1331,14 +1331,14 @@
       "trait_vector": {
         "risk_tolerance": 0.4821,
         "risk_aversion": 0.5679,
-        "patience": 0.5424,
-        "impulsivity": 0.4491,
-        "discipline": 0.5255,
-        "greed": 0.3906,
-        "confidence": 0.5161,
-        "analytical_depth": 0.5,
-        "contrarian_tendency": 0.34,
-        "herd_mentality": 0.76
+        "patience": 0.5839,
+        "impulsivity": 0.3868,
+        "discipline": 0.4962,
+        "greed": 0.3076,
+        "confidence": 0.4745,
+        "analytical_depth": 0.74,
+        "contrarian_tendency": 0.59,
+        "herd_mentality": 0.47
       },
       "sparkline": [
         121.21,
@@ -1439,14 +1439,14 @@
       "trait_vector": {
         "risk_tolerance": 0.8545,
         "risk_aversion": 0.1955,
-        "patience": 0.3097,
-        "impulsivity": 0.7284,
-        "discipline": 0.3858,
-        "greed": 0.7164,
-        "confidence": 0.7023,
-        "analytical_depth": 0.5,
-        "contrarian_tendency": 0.48,
-        "herd_mentality": 0.62
+        "patience": 0.3977,
+        "impulsivity": 0.5963,
+        "discipline": 0.3798,
+        "greed": 0.5403,
+        "confidence": 0.6142,
+        "analytical_depth": 0.68,
+        "contrarian_tendency": 0.68,
+        "herd_mentality": 0.39
       },
       "sparkline": [
         242.71,
@@ -1547,14 +1547,14 @@
       "trait_vector": {
         "risk_tolerance": 0.6638,
         "risk_aversion": 0.3862,
-        "patience": 0.4289,
-        "impulsivity": 0.5854,
-        "discipline": 0.4573,
-        "greed": 0.5496,
-        "confidence": 0.6069,
-        "analytical_depth": 0.5,
-        "contrarian_tendency": 0.466,
-        "herd_mentality": 0.634
+        "patience": 0.3842,
+        "impulsivity": 0.489,
+        "discipline": 0.4394,
+        "greed": 0.4211,
+        "confidence": 0.5427,
+        "analytical_depth": 0.686,
+        "contrarian_tendency": 0.4169,
+        "herd_mentality": 0.398
       },
       "sparkline": [
         137.4,
@@ -1655,14 +1655,14 @@
       "trait_vector": {
         "risk_tolerance": 0.5158,
         "risk_aversion": 0.5342,
-        "patience": 0.5213,
-        "impulsivity": 0.4744,
-        "discipline": 0.5128,
-        "greed": 0.4201,
-        "confidence": 0.5329,
-        "analytical_depth": 0.5,
-        "contrarian_tendency": 0.62,
-        "herd_mentality": 0.48
+        "patience": 0.4271,
+        "impulsivity": 0.4058,
+        "discipline": 0.4857,
+        "greed": 0.3287,
+        "confidence": 0.4872,
+        "analytical_depth": 0.62,
+        "contrarian_tendency": 0.4434,
+        "herd_mentality": 0.31
       },
       "sparkline": [
         22.14,
@@ -1763,14 +1763,14 @@
       "trait_vector": {
         "risk_tolerance": 0.2728,
         "risk_aversion": 0.7772,
-        "patience": 0.6732,
-        "impulsivity": 0.2921,
-        "discipline": 0.6039,
-        "greed": 0.2588,
-        "confidence": 0.4114,
-        "analytical_depth": 0.5,
-        "contrarian_tendency": 0.221,
-        "herd_mentality": 0.879
+        "patience": 0.6386,
+        "impulsivity": 0.4295,
+        "discipline": 0.6616,
+        "greed": 0.4014,
+        "confidence": 0.4923,
+        "analytical_depth": 0.2605,
+        "contrarian_tendency": 0.1635,
+        "herd_mentality": 0.7947
       },
       "sparkline": [
         590.23,
@@ -1871,14 +1871,14 @@
       "trait_vector": {
         "risk_tolerance": 0.3223,
         "risk_aversion": 0.7277,
-        "patience": 0.6423,
-        "impulsivity": 0.3292,
-        "discipline": 0.5854,
-        "greed": 0.3259,
-        "confidence": 0.4361,
-        "analytical_depth": 0.5,
-        "contrarian_tendency": 0.249,
-        "herd_mentality": 0.851
+        "patience": 0.6139,
+        "impulsivity": 0.5316,
+        "discipline": 0.6462,
+        "greed": 0.5362,
+        "confidence": 0.5554,
+        "analytical_depth": 0.2745,
+        "contrarian_tendency": 0.1815,
+        "herd_mentality": 0.8975
       },
       "sparkline": [
         524.42,
@@ -1979,14 +1979,14 @@
       "trait_vector": {
         "risk_tolerance": 0.2762,
         "risk_aversion": 0.7738,
-        "patience": 0.6711,
-        "impulsivity": 0.2947,
-        "discipline": 0.6027,
-        "greed": 0.263,
-        "confidence": 0.4131,
-        "analytical_depth": 0.5,
-        "contrarian_tendency": 0.235,
-        "herd_mentality": 0.865
+        "patience": 0.6369,
+        "impulsivity": 0.4352,
+        "discipline": 0.6606,
+        "greed": 0.4088,
+        "confidence": 0.4958,
+        "analytical_depth": 0.2675,
+        "contrarian_tendency": 0.1725,
+        "herd_mentality": 0.7927
       },
       "sparkline": [
         290.14,
@@ -2087,14 +2087,14 @@
       "trait_vector": {
         "risk_tolerance": 0.5139,
         "risk_aversion": 0.5361,
-        "patience": 0.5226,
-        "impulsivity": 0.4729,
-        "discipline": 0.5135,
-        "greed": 0.4617,
-        "confidence": 0.5319,
-        "analytical_depth": 0.5,
-        "contrarian_tendency": 0.515,
-        "herd_mentality": 0.585
+        "patience": 0.5181,
+        "impulsivity": 0.5399,
+        "discipline": 0.5863,
+        "greed": 0.5168,
+        "confidence": 0.5676,
+        "analytical_depth": 0.4075,
+        "contrarian_tendency": 0.3525,
+        "herd_mentality": 0.5864
       },
       "sparkline": [
         62.19,
@@ -2195,14 +2195,14 @@
       "trait_vector": {
         "risk_tolerance": 0.427,
         "risk_aversion": 0.623,
-        "patience": 0.5769,
-        "impulsivity": 0.4077,
-        "discipline": 0.5461,
-        "greed": 0.3868,
-        "confidence": 0.4885,
-        "analytical_depth": 0.5,
-        "contrarian_tendency": 0.305,
-        "herd_mentality": 0.795
+        "patience": 0.5615,
+        "impulsivity": 0.4946,
+        "discipline": 0.6134,
+        "greed": 0.4674,
+        "confidence": 0.5372,
+        "analytical_depth": 0.3025,
+        "contrarian_tendency": 0.2175,
+        "herd_mentality": 0.7121
       },
       "sparkline": [
         316.29,
@@ -2302,15 +2302,15 @@
       },
       "trait_vector": {
         "risk_tolerance": 0.2459,
-        "risk_aversion": 1.0,
-        "patience": 0.9401,
-        "impulsivity": 0.2719,
-        "discipline": 0.814,
-        "greed": 0.0,
-        "confidence": 0.3979,
-        "analytical_depth": 0.5,
-        "contrarian_tendency": 0.27,
-        "herd_mentality": 0.83
+        "risk_aversion": 0.8041,
+        "patience": 0.8521,
+        "impulsivity": 0.2782,
+        "discipline": 0.77,
+        "greed": 0.1939,
+        "confidence": 0.4005,
+        "analytical_depth": 0.325,
+        "contrarian_tendency": 0.195,
+        "herd_mentality": 0.5488
       },
       "sparkline": [
         82.56,
@@ -2410,15 +2410,15 @@
       },
       "trait_vector": {
         "risk_tolerance": 0.1872,
-        "risk_aversion": 1.0,
-        "patience": 0.9767,
-        "impulsivity": 0.2279,
-        "discipline": 0.836,
-        "greed": 0.0,
-        "confidence": 0.3686,
-        "analytical_depth": 0.5,
-        "contrarian_tendency": 0.256,
-        "herd_mentality": 0.844
+        "risk_aversion": 0.8628,
+        "patience": 0.8814,
+        "impulsivity": 0.2508,
+        "discipline": 0.7884,
+        "greed": 0.165,
+        "confidence": 0.3819,
+        "analytical_depth": 0.32,
+        "contrarian_tendency": 0.186,
+        "herd_mentality": 0.5657
       },
       "sparkline": [
         69.9,
@@ -2518,15 +2518,15 @@
       },
       "trait_vector": {
         "risk_tolerance": 0.1887,
-        "risk_aversion": 1.0,
-        "patience": 0.9758,
-        "impulsivity": 0.2291,
-        "discipline": 0.8355,
-        "greed": 0.0,
-        "confidence": 0.3694,
-        "analytical_depth": 0.5,
-        "contrarian_tendency": 0.41,
-        "herd_mentality": 0.69
+        "risk_aversion": 0.8613,
+        "patience": 0.8806,
+        "impulsivity": 0.2644,
+        "discipline": 0.7879,
+        "greed": 0.1838,
+        "confidence": 0.3901,
+        "analytical_depth": 0.375,
+        "contrarian_tendency": 0.285,
+        "herd_mentality": 0.4982
       },
       "sparkline": [
         74.84,
@@ -2626,15 +2626,15 @@
       },
       "trait_vector": {
         "risk_tolerance": 0.1633,
-        "risk_aversion": 1.0,
-        "patience": 0.9917,
-        "impulsivity": 0.21,
-        "discipline": 0.845,
-        "greed": 0.0,
-        "confidence": 0.3566,
-        "analytical_depth": 0.5,
-        "contrarian_tendency": 0.249,
-        "herd_mentality": 0.851
+        "risk_aversion": 0.8867,
+        "patience": 0.8934,
+        "impulsivity": 0.2281,
+        "discipline": 0.7958,
+        "greed": 0.1371,
+        "confidence": 0.3673,
+        "analytical_depth": 0.3175,
+        "contrarian_tendency": 0.1815,
+        "herd_mentality": 0.5549
       },
       "sparkline": [
         79.45,
@@ -2712,10 +2712,10 @@
         "reputation": 70
       },
       "annualized_volatility": 0.359,
-      "period_return": -0.3968,
+      "period_return": -0.3967,
       "reputation": 0.7,
       "metadata": {
-        "latest_price": 63994.0,
+        "latest_price": 64009.98,
         "period_high": 124752.53,
         "period_low": 60867.41,
         "range_position": 5,
@@ -2735,14 +2735,14 @@
       "trait_vector": {
         "risk_tolerance": 0.509,
         "risk_aversion": 0.541,
-        "patience": 0.5256,
-        "impulsivity": 0.5692,
-        "discipline": 0.5154,
-        "greed": 0.4141,
-        "confidence": 0.5295,
-        "analytical_depth": 0.5,
-        "contrarian_tendency": 0.51,
-        "herd_mentality": 0.69
+        "patience": 0.4205,
+        "impulsivity": 0.4019,
+        "discipline": 0.3378,
+        "greed": 0.3244,
+        "confidence": 0.4846,
+        "analytical_depth": 0.41,
+        "contrarian_tendency": 0.635,
+        "herd_mentality": 0.43
       },
       "sparkline": [
         106090.97,
@@ -2820,10 +2820,10 @@
         "reputation": 65
       },
       "annualized_volatility": 0.5623,
-      "period_return": -0.3502,
+      "period_return": -0.3503,
       "reputation": 0.65,
       "metadata": {
-        "latest_price": 1676.09,
+        "latest_price": 1675.87,
         "period_high": 4831.35,
         "period_low": 1568.77,
         "range_position": 3,
@@ -2843,14 +2843,14 @@
       "trait_vector": {
         "risk_tolerance": 0.7123,
         "risk_aversion": 0.3377,
-        "patience": 0.3985,
-        "impulsivity": 0.7217,
-        "discipline": 0.4391,
-        "greed": 0.592,
-        "confidence": 0.6312,
-        "analytical_depth": 0.5,
-        "contrarian_tendency": 0.545,
-        "herd_mentality": 0.655
+        "patience": 0.3188,
+        "impulsivity": 0.5163,
+        "discipline": 0.2743,
+        "greed": 0.4515,
+        "confidence": 0.5609,
+        "analytical_depth": 0.395,
+        "contrarian_tendency": 0.6575,
+        "herd_mentality": 0.41
       },
       "sparkline": [
         2579.49,
@@ -2927,8 +2927,8 @@
         "stability": 17,
         "reputation": 30
       },
-      "annualized_volatility": 0.6644,
-      "period_return": -0.5128,
+      "annualized_volatility": 0.6643,
+      "period_return": -0.5142,
       "reputation": 0.3,
       "metadata": {
         "latest_price": 0.09,
@@ -2949,16 +2949,16 @@
         "text": "Suggested approach: treat DOGE-USD as a small, speculative slice of the portfolio (\u22481\u20133%). Horizon: long-term conviction with high volatility tolerance. Risk management: use a strict stop-loss and take partial profits into strength; avoid leverage."
       },
       "trait_vector": {
-        "risk_tolerance": 0.8144,
-        "risk_aversion": 0.2356,
-        "patience": 0.3347,
-        "impulsivity": 0.7983,
-        "discipline": 0.4008,
-        "greed": 0.6814,
-        "confidence": 0.6822,
-        "analytical_depth": 0.5,
-        "contrarian_tendency": 0.79,
-        "herd_mentality": 0.41
+        "risk_tolerance": 0.8143,
+        "risk_aversion": 0.2357,
+        "patience": 0.2678,
+        "impulsivity": 0.5737,
+        "discipline": 0.2424,
+        "greed": 0.5152,
+        "confidence": 0.5991,
+        "analytical_depth": 0.29,
+        "contrarian_tendency": 0.815,
+        "herd_mentality": 0.27
       },
       "sparkline": [
         0.18,
@@ -3035,11 +3035,11 @@
         "stability": 25,
         "reputation": 45
       },
-      "annualized_volatility": 0.6032,
-      "period_return": -0.5422,
+      "annualized_volatility": 0.6033,
+      "period_return": -0.5421,
       "reputation": 0.45,
       "metadata": {
-        "latest_price": 68.04,
+        "latest_price": 68.06,
         "period_high": 247.64,
         "period_low": 62.19,
         "range_position": 3,
@@ -3057,16 +3057,16 @@
         "text": "Suggested approach: treat SOL-USD as a small, speculative slice of the portfolio (\u22481\u20133%). Horizon: long-term conviction with high volatility tolerance. Risk management: use a strict stop-loss and take partial profits into strength; avoid leverage."
       },
       "trait_vector": {
-        "risk_tolerance": 0.7532,
-        "risk_aversion": 0.2968,
-        "patience": 0.373,
-        "impulsivity": 0.7524,
-        "discipline": 0.4238,
-        "greed": 0.6278,
-        "confidence": 0.6516,
-        "analytical_depth": 0.5,
-        "contrarian_tendency": 0.685,
-        "herd_mentality": 0.515
+        "risk_tolerance": 0.7533,
+        "risk_aversion": 0.2967,
+        "patience": 0.2984,
+        "impulsivity": 0.5393,
+        "discipline": 0.2615,
+        "greed": 0.477,
+        "confidence": 0.5762,
+        "analytical_depth": 0.335,
+        "contrarian_tendency": 0.7475,
+        "herd_mentality": 0.33
       },
       "sparkline": [
         148.63,
