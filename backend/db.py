@@ -42,6 +42,27 @@ _conn: sqlite3.Connection | None = None
 # basket, giving a realistic "people like you also liked…" popularity signal.
 DUMMY_USERS_PER_PERSONA = 4
 
+# Two named example accounts for demos. Unlike the (hidden) dummy users, these
+# are real, log-in-able accounts with a fully-formed profile, so logging in as
+# one lands straight in Discover with a populated watchlist — no onboarding.
+# Seeded once and then persisted like any other user (idempotent on username).
+EXAMPLE_USERS: list[dict] = [
+    {
+        "username": "saver",
+        "password": "finter",
+        "email": "saver@finter.local",
+        "persona_id": "cautious_saver",
+        "likes": ["BND", "SHY", "TLT", "PG", "KO", "JNJ"],
+    },
+    {
+        "username": "degen",
+        "password": "finter",
+        "email": "degen@finter.local",
+        "persona_id": "degen",
+        "likes": ["TSLA", "GME", "COIN", "DOGE-USD", "SOL-USD"],
+    },
+]
+
 
 def _connect() -> sqlite3.Connection:
     global _conn
@@ -116,6 +137,7 @@ def init_db() -> None:
         conn.commit()
         _seed_personas()
         _seed_dummy_users()
+        _seed_example_users()
 
 
 def _migrate(conn: sqlite3.Connection) -> None:
@@ -171,6 +193,40 @@ def _seed_dummy_users() -> None:
                     "INSERT OR IGNORE INTO likes(user_id, symbol, created_at) VALUES (?,?,?)",
                     (uid, sym, now),
                 )
+    conn.commit()
+
+
+def _seed_example_users() -> None:
+    """
+    Create the named demo accounts (EXAMPLE_USERS), each with a complete profile
+    — persona, matching trait vector and a basket of liked instruments — so a
+    demo can log in and go straight to Discover. Idempotent: each user is keyed
+    by username and skipped if it already exists, so it's seeded once and then
+    persists across restarts (existing accounts are never overwritten or wiped).
+    """
+    conn = _connect()
+    personas_by_id = {p["id"]: p for p in PERSONAS}
+    now = time.time()
+    for spec in EXAMPLE_USERS:
+        if conn.execute(
+            "SELECT 1 FROM users WHERE username=?", (spec["username"],)
+        ).fetchone():
+            continue
+        persona = personas_by_id.get(spec["persona_id"])
+        base_vector = json.dumps(persona["traits"]) if persona else None
+        salt, pwd_hash = auth.hash_password(spec["password"])
+        cur = conn.execute(
+            "INSERT INTO users(username, email, password_hash, salt, persona_id, "
+            "base_vector, is_dummy, created_at) VALUES (?,?,?,?,?,?,0,?)",
+            (spec["username"], spec.get("email"), pwd_hash, salt,
+             spec["persona_id"], base_vector, now),
+        )
+        uid = cur.lastrowid
+        for sym in spec.get("likes", []):
+            conn.execute(
+                "INSERT OR IGNORE INTO likes(user_id, symbol, created_at) VALUES (?,?,?)",
+                (uid, sym, now),
+            )
     conn.commit()
 
 
