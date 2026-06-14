@@ -2,101 +2,121 @@
 Hand-authored trader archetypes ("seed personas").
 
 These substitute for the proprietary (personality -> trades) dataset that does
-not exist publicly and cannot be collected in 24h. Each persona has a trait
-vector and a basket of instruments they "invested in". At recommend time we
-find the personas nearest to the user and surface their baskets as the
-collaborative-filtering signal — i.e. the literal "traders like you invested
-in X" feature — alongside the content-based instrument similarity.
+not exist publicly and cannot be collected in 24h. Each persona is a point in
+the 10-dim trait space plus a basket of instruments that trader would hold.
+
+How they're used:
+  - We classify the user against these archetypes (Pearson correlation, softmax)
+    and surface the nearest ones as the user's "trader DNA".
+  - Their baskets seed the hidden dummy users (db.py), which generate the
+    same-persona crowd signal — the "traders like you also liked X" feature.
+
+Design notes (the vectors are deliberately authored, not random):
+  - The dominant axis in any honest set of trader archetypes is risk appetite:
+    risk_tolerance / greed / impulsivity genuinely co-move, so ~60% of the
+    variance lives on that one axis. That is faithful, not a bug.
+  - The set is chosen so the remaining axes (analysis, discipline, crowd-
+    independence) are each exercised by at least one archetype that DECOUPLES
+    them from raw risk — most importantly The Quant (aggressive yet maximally
+    disciplined and analytical), which is the archetype a pure risk gradient
+    misses. No two archetypes exceed ~0.72 correlation; the closest pairs
+    (Growth/Degen, Quant/Contrarian, Saver/Index) are genuine kin, not dupes.
+
+Trait vectors are partial; unspecified traits default to 0.5 via sanitize.
 """
 
 from __future__ import annotations
 
 from .traits import sanitize_vector
 
-# Trait vectors are partial; unspecified traits default to 0.5 via sanitize.
 PERSONAS: list[dict] = [
+    # --- Conservative / passive end (low risk appetite) ---
     {
         "id": "cautious_saver",
         "name": "The Cautious Saver",
         "blurb": "Sleeps well, never checks the ticker. Capital preservation first.",
         "traits": sanitize_vector({
-            "risk_tolerance": 0.10, "risk_aversion": 0.95, "patience": 0.85,
-            "impulsivity": 0.10, "discipline": 0.80, "greed": 0.10,
-            "confidence": 0.35, "analytical_depth": 0.45, "contrarian_tendency": 0.30,
-            "herd_mentality": 0.55,
+            "risk_tolerance": 0.10, "risk_aversion": 0.95, "patience": 0.74,
+            "impulsivity": 0.10, "discipline": 0.78, "greed": 0.10,
+            "confidence": 0.30, "analytical_depth": 0.28, "contrarian_tendency": 0.32,
+            "herd_mentality": 0.48,
         }),
-        "basket": ["BND", "SHY", "TLT", "PG", "KO", "JNJ", "VTI", "GLD"],
+        "basket": ["BND", "SHY", "BIL", "TLT", "JNJ", "PG", "KO", "GLD"],
     },
     {
         "id": "index_autopilot",
         "name": "The Index Autopilot",
         "blurb": "Buys the whole market monthly and ignores the noise.",
         "traits": sanitize_vector({
-            "risk_tolerance": 0.50, "risk_aversion": 0.45, "patience": 0.95,
-            "impulsivity": 0.10, "discipline": 0.90, "greed": 0.25,
-            "confidence": 0.30, "analytical_depth": 0.10, "contrarian_tendency": 0.15,
-            "herd_mentality": 0.90,
+            "risk_tolerance": 0.45, "risk_aversion": 0.50, "patience": 0.95,
+            "impulsivity": 0.08, "discipline": 0.92, "greed": 0.22,
+            "confidence": 0.30, "analytical_depth": 0.06, "contrarian_tendency": 0.10,
+            "herd_mentality": 0.95,
         }),
-        "basket": ["VTI", "SPY", "QQQ", "BND", "AAPL", "MSFT"],
+        "basket": ["VTI", "VOO", "SPY", "QQQ", "DIA", "SCHD", "BND"],
     },
+
+    # --- Cerebral / research-driven middle (analysis decoupled from risk) ---
     {
         "id": "value_investor",
         "name": "The Value Investor",
         "blurb": "Reads the 10-K cover to cover. Buys wonderful companies at fair prices.",
         "traits": sanitize_vector({
-            "risk_tolerance": 0.40, "risk_aversion": 0.60, "patience": 0.90,
-            "impulsivity": 0.10, "discipline": 0.90, "greed": 0.30,
-            "confidence": 0.65, "analytical_depth": 0.95, "contrarian_tendency": 0.30,
-            "herd_mentality": 0.50,
+            "risk_tolerance": 0.40, "risk_aversion": 0.56, "patience": 0.92,
+            "impulsivity": 0.10, "discipline": 0.86, "greed": 0.32,
+            "confidence": 0.60, "analytical_depth": 0.95, "contrarian_tendency": 0.42,
+            "herd_mentality": 0.48,
         }),
-        "basket": ["BRK-B", "JPM", "JNJ", "AAPL", "MSFT", "GOOGL", "PG"],
+        "basket": ["BRK-B", "JPM", "JNJ", "PG", "KO", "UNH", "V", "XOM"],
     },
     {
-        "id": "growth_hunter",
-        "name": "The Growth Hunter",
-        "blurb": "Wants the next 10x. Tolerates drawdowns for upside.",
+        "id": "systematic_quant",
+        "name": "The Quant",
+        "blurb": "Trades a tested system, not a feeling. Aggressive sizing, ironclad rules.",
         "traits": sanitize_vector({
-            "risk_tolerance": 0.85, "risk_aversion": 0.20, "patience": 0.45,
-            "impulsivity": 0.55, "discipline": 0.45, "greed": 0.80,
-            "confidence": 0.80, "analytical_depth": 0.55, "contrarian_tendency": 0.30,
-            "herd_mentality": 0.70,
+            "risk_tolerance": 0.75, "risk_aversion": 0.25, "patience": 0.50,
+            "impulsivity": 0.18, "discipline": 0.97, "greed": 0.50,
+            "confidence": 0.82, "analytical_depth": 0.98, "contrarian_tendency": 0.45,
+            "herd_mentality": 0.30,
         }),
-        "basket": ["NVDA", "AMD", "META", "NFLX", "PLTR", "QQQ", "GOOGL"],
-    },
-    {
-        "id": "degen",
-        "name": "The Degen",
-        "blurb": "High conviction, high adrenaline. YOLOs into momentum.",
-        "traits": sanitize_vector({
-            "risk_tolerance": 0.98, "risk_aversion": 0.05, "patience": 0.10,
-            "impulsivity": 0.95, "discipline": 0.15, "greed": 0.95,
-            "confidence": 0.85, "analytical_depth": 0.20, "contrarian_tendency": 0.35,
-            "herd_mentality": 0.80,
-        }),
-        "basket": ["TSLA", "GME", "COIN", "DOGE-USD", "SOL-USD", "PLTR", "ARKK"],
-    },
-    {
-        "id": "crypto_native",
-        "name": "The Crypto Native",
-        "blurb": "Believes in the tech, stomachs the volatility, stacks sats.",
-        "traits": sanitize_vector({
-            "risk_tolerance": 0.85, "risk_aversion": 0.20, "patience": 0.60,
-            "impulsivity": 0.40, "discipline": 0.40, "greed": 0.70,
-            "confidence": 0.78, "analytical_depth": 0.72, "contrarian_tendency": 0.80,
-            "herd_mentality": 0.20,
-        }),
-        "basket": ["BTC-USD", "ETH-USD", "SOL-USD", "COIN", "NVDA"],
+        "basket": ["SPY", "QQQ", "XLK", "XLF", "IWM", "AAPL", "MSFT", "GLD"],
     },
     {
         "id": "contrarian",
         "name": "The Contrarian",
         "blurb": "When there's blood in the streets, they're buying.",
         "traits": sanitize_vector({
-            "risk_tolerance": 0.55, "risk_aversion": 0.40, "patience": 0.90,
-            "impulsivity": 0.15, "discipline": 0.90, "greed": 0.30,
-            "confidence": 0.90, "analytical_depth": 0.92, "contrarian_tendency": 0.98,
+            "risk_tolerance": 0.64, "risk_aversion": 0.36, "patience": 0.82,
+            "impulsivity": 0.18, "discipline": 0.80, "greed": 0.32,
+            "confidence": 0.96, "analytical_depth": 0.78, "contrarian_tendency": 0.98,
             "herd_mentality": 0.05,
         }),
-        "basket": ["GLD", "TLT", "GME", "ARKK", "BRK-B", "HYG"],
+        "basket": ["GME", "ARKK", "XLE", "HYG", "GLD", "TLT", "BAC"],
+    },
+
+    # --- Aggressive end (high risk appetite) ---
+    {
+        "id": "growth_hunter",
+        "name": "The Growth Hunter",
+        "blurb": "Wants the next 10x. Tolerates drawdowns for upside.",
+        "traits": sanitize_vector({
+            "risk_tolerance": 0.85, "risk_aversion": 0.18, "patience": 0.50,
+            "impulsivity": 0.45, "discipline": 0.50, "greed": 0.78,
+            "confidence": 0.82, "analytical_depth": 0.55, "contrarian_tendency": 0.28,
+            "herd_mentality": 0.74,
+        }),
+        "basket": ["NVDA", "AMD", "META", "NFLX", "PLTR", "AMZN", "TSLA", "QQQ"],
+    },
+    {
+        "id": "degen",
+        "name": "The Degen",
+        "blurb": "High conviction, high adrenaline. YOLOs into momentum.",
+        "traits": sanitize_vector({
+            "risk_tolerance": 0.98, "risk_aversion": 0.04, "patience": 0.08,
+            "impulsivity": 0.97, "discipline": 0.10, "greed": 0.97,
+            "confidence": 0.85, "analytical_depth": 0.15, "contrarian_tendency": 0.28,
+            "herd_mentality": 0.85,
+        }),
+        "basket": ["TSLA", "GME", "COIN", "DOGE-USD", "SHIB-USD", "SOL-USD", "PLTR", "ARKK"],
     },
 ]

@@ -52,14 +52,35 @@ EXAMPLE_USERS: list[dict] = [
         "password": "finter",
         "email": "saver@finter.local",
         "persona_id": "cautious_saver",
-        "likes": ["BND", "SHY", "TLT", "PG", "KO", "JNJ"],
+        "likes": ["BND", "SHY", "BIL", "TLT", "JNJ", "PG", "KO", "GLD"],
+    },
+    {
+        "username": "value",
+        "password": "finter",
+        "email": "value@finter.local",
+        "persona_id": "value_investor",
+        "likes": ["BRK-B", "JPM", "JNJ", "PG", "KO", "UNH", "V", "XOM"],
+    },
+    {
+        "username": "quant",
+        "password": "finter",
+        "email": "quant@finter.local",
+        "persona_id": "systematic_quant",
+        "likes": ["SPY", "QQQ", "XLK", "XLF", "IWM", "AAPL", "MSFT", "GLD"],
+    },
+    {
+        "username": "growth",
+        "password": "finter",
+        "email": "growth@finter.local",
+        "persona_id": "growth_hunter",
+        "likes": ["NVDA", "AMD", "META", "NFLX", "PLTR", "AMZN", "TSLA", "QQQ"],
     },
     {
         "username": "degen",
         "password": "finter",
         "email": "degen@finter.local",
         "persona_id": "degen",
-        "likes": ["TSLA", "GME", "COIN", "DOGE-USD", "SOL-USD"],
+        "likes": ["TSLA", "GME", "COIN", "DOGE-USD", "SHIB-USD", "SOL-USD", "PLTR", "ARKK"],
     },
 ]
 

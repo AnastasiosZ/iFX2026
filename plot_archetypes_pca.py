@@ -37,10 +37,10 @@ COLORS = [
     "#4fc3f7",  # cautious_saver   – sky blue
     "#81c784",  # index_autopilot  – green
     "#fff176",  # value_investor   – yellow
+    "#ce93d8",  # systematic_quant – purple
+    "#80cbc4",  # contrarian       – teal
     "#ffb74d",  # growth_hunter    – orange
     "#ef5350",  # degen            – red
-    "#ce93d8",  # crypto_native    – purple
-    "#80cbc4",  # contrarian       – teal
 ]
 
 scatter_kw = dict(s=220, zorder=5, edgecolors="white", linewidths=0.8)
@@ -60,22 +60,6 @@ for i, (x, y) in enumerate(coords):
         color="white",
         bbox=dict(boxstyle="round,pad=0.3", fc="#1e2130", ec=COLORS[i], lw=0.8, alpha=0.85),
     )
-
-# Draw loading arrows for each trait (biplot)
-# Scale arrows to fit within ~half the data range
-scale = 0.6 * np.max(np.abs(coords))
-for j, trait in enumerate(TRAITS):
-    dx = pca.components_[0, j] * scale
-    dy = pca.components_[1, j] * scale
-    if np.sqrt(dx**2 + dy**2) < 0.05 * scale:
-        continue  # skip near-zero loadings
-    ax.annotate(
-        "",
-        xy=(dx, dy), xytext=(0, 0),
-        arrowprops=dict(arrowstyle="->", color="gray", lw=0.9),
-    )
-    ax.text(dx * 1.08, dy * 1.08, trait.replace("_", " "),
-            fontsize=6.5, color="#aaaaaa", ha="center", va="center")
 
 # Axis zero lines
 ax.axhline(0, color="#333344", lw=0.7, ls="--")

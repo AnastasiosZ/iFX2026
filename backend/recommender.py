@@ -128,13 +128,14 @@ def load(instruments: list[dict]) -> None:
     INSTRUMENTS_BY_SYMBOL = {i["symbol"]: i for i in instruments}
 
 
-# Temperature for the persona-classification softmax. Persona vectors all live in
-# a similar region of the space, so raw cosine similarities bunch up in the high
-# 0.8s–0.9s and the resulting "match %" looked almost identical across types. We
-# instead turn the similarities into a probability distribution with a low
-# temperature, which sharpens the contrast so the dominant persona clearly leads
-# and the others fan out beneath it (req #19).
-PERSONA_SOFTMAX_TAU = 0.028
+# Temperature for the persona-classification softmax. We turn the personas'
+# similarities to the user into a probability distribution so the dominant
+# persona clearly leads while the runner-ups still fan out with visible shares
+# (req #19). Tuned to the *current* persona set: the archetypes are now
+# well-separated (max pairwise Pearson ~0.72), so the per-user similarity gaps
+# are wide — too low a tau collapses this to a degenerate 100/0/0. At 0.14 a
+# typical user reads ~65–85% on their lead type with the next two in the teens.
+PERSONA_SOFTMAX_TAU = 0.14
 
 
 def nearest_personas(user_vec: dict[str, float], k: int = K_PERSONAS) -> list[dict]:
