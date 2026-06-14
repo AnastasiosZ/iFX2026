@@ -1,26 +1,17 @@
 """
 The recommender core.
 
-Two blended signals, both computed in the shared 10-dim personality space:
-
-  1. CONTENT-BASED: cosine similarity between the user's personality vector and
-     each instrument's trait projection. "This instrument fits who you are."
-
-  2. COLLABORATIVE (persona-based): find the nearest seed personas to the user
-     and boost the instruments in their baskets. "Traders like you invested in
-     this." This is what makes the recommendation feel social without needing a
-     real user-behavior dataset.
+Content-based: cosine similarity between the user's personality vector and
+each instrument's trait projection. "This instrument fits who you are."
 
 Plus an IMPLICIT-FEEDBACK term: as the user swipes, their vector is nudged
 toward liked instruments and away from passed ones (with exponential time
-decay so recent swipes dominate — the 'decreasing confidence over time' idea
-from the brief, applied at inference instead of training).
+decay so recent swipes dominate).
 
-The deck itself is not returned as a frozen argsort: instrument cosine
-similarities are used as logits in a low-temperature softmax that we SAMPLE
-from (Gumbel-top-k), so strong matches lead but the deck stays fresh between
-visits. No training, no GPU — pure numpy, and every card still carries an
-explainable 'why'.
+The deck is not a frozen argsort: cosine similarities are used as logits in a
+low-temperature softmax sampled via Gumbel-top-k, so strong matches lead but
+the deck stays fresh between visits. No training, no GPU — pure numpy, and
+every card carries an explainable 'why'.
 """
 
 from __future__ import annotations
@@ -42,16 +33,8 @@ SWIPE_HALFLIFE_S = 3600.0
 # swipe was and by time decay — see effective_vector). It is a unit-direction step,
 # not proportional to the raw distance to the instrument, so a pass on a high-match
 # card actually shifts the profile instead of vanishing.
-SWIPE_LR = 0.15
-# Blend weights for the final score. The collaborative term is downweighted: in
-# this demo it is entirely persona-basket-derived (the basket signal uses the
-# hand-authored baskets directly, and the same-persona crowd signal aggregates
-# likes from dummy users that were themselves seeded from those baskets), so it
-# is a low-quality, self-referential signal. Content (cosine fit to the user's
-# own personality) carries the recommendation; collab only nudges.
-W_CONTENT = 0.8
-W_COLLAB = 0.2
-# How many nearest personas contribute to the collaborative signal.
+SWIPE_LR = 0.3
+# How many nearest personas to surface (the top-3 the user most resembles).
 K_PERSONAS = 3
 
 
@@ -80,13 +63,6 @@ class Swipe:
     symbol: str
     liked: bool
     ts: float = field(default_factory=time.time)
-
-
-# Within the collaborative signal, how much comes from the baskets of the nearest
-# personas vs. from the actual likes of other USERS who share the user's persona.
-# Per the product spec: 40% of the collaborative score is the same-persona crowd.
-COLLAB_FROM_PERSONA_BASKET = 0.6
-COLLAB_FROM_PERSONA_USERS = 0.4
 
 
 @dataclass
@@ -191,31 +167,6 @@ def _to_pct(cos: float) -> float:
     return clamp01((cos + 1) / 2) * 100
 
 
-def _collab_scores(user_vec: dict[str, float]) -> dict[str, float]:
-    """
-    Symbol -> collaborative score in [0,1], from nearest personas' baskets,
-    weighted by how well each persona matches the user.
-    """
-    u = _vec(user_vec)
-    scored = sorted(
-        ((pearson(u, pv), p) for (p, pv) in _PERSONA_VECS),
-        key=lambda x: x[0], reverse=True,
-    )[:K_PERSONAS]
-    if not scored:
-        return {}
-    weights = {}
-    total_w = 0.0
-    for sim, p in scored:
-        w = max(sim, 0.0)
-        total_w += w
-        for sym in p["basket"]:
-            weights[sym] = weights.get(sym, 0.0) + w
-    if total_w > 0:
-        for sym in weights:
-            weights[sym] = clamp01(weights[sym] / total_w)
-    return weights
-
-
 # Temperature for sampling the recommendation deck. Rather than always returning
 # the highest-match cards, we treat each instrument's cosine similarity to the
 # user as a logit, divide by this (low) temperature and SAMPLE the deck from the
@@ -265,18 +216,12 @@ def _normalize_counts(counts: dict[str, int]) -> dict[str, float]:
 def recommend(user: UserState, asset_class: str | None = None, limit: int = 20,
               persona_like_counts: dict[str, int] | None = None) -> list[dict]:
     """
-    Ranked recommendations for a user, optionally filtered to one asset class
-    (the UI's section tabs). Each item carries its component scores and a short
-    human-readable 'why', so the UI can explain every card.
-
-    The collaborative term blends two crowd signals:
-      - 60% the baskets of the personas nearest the user's vector, and
-      - 40% the instruments actually liked by OTHER users who share this user's
-        persona (`persona_like_counts`, symbol -> like count from the DB).
+    Ranked recommendations for a user, optionally filtered to one asset class.
+    Score = 80% content (cosine fit to personality) + 20% crowd (instruments
+    liked by other users who share this user's persona).
     """
     uvec = user.effective_vector()
     u = _vec(uvec)
-    basket = _collab_scores(uvec)
     crowd = _normalize_counts(persona_like_counts or {})
     swiped = {s.symbol for s in user.swipes}
 
@@ -285,12 +230,10 @@ def recommend(user: UserState, asset_class: str | None = None, limit: int = 20,
         if asset_class and inst["asset_class"] != asset_class:
             continue
         ivec = _vec(inst["trait_vector"])
-        cos = cosine(u, ivec)                         # raw cosine, the sampling logit
-        content = (cos + 1) / 2                        # -> [0,1] for the blended match
-        basket_s = basket.get(inst["symbol"], 0.0)
+        cos = cosine(u, ivec)
+        content = (cos + 1) / 2
         crowd_s = crowd.get(inst["symbol"], 0.0)
-        collab_s = COLLAB_FROM_PERSONA_BASKET * basket_s + COLLAB_FROM_PERSONA_USERS * crowd_s
-        score = W_CONTENT * content + W_COLLAB * collab_s
+        score = 0.8 * content + 0.2 * crowd_s
         rows.append({
             "symbol": inst["symbol"],
             "name": inst["name"],
@@ -307,10 +250,9 @@ def recommend(user: UserState, asset_class: str | None = None, limit: int = 20,
             "match": round(score * 100),
             "_content": content,
             "_cosine": cos,
-            "_collab": collab_s,
             "_crowd": crowd_s,
             "already_swiped": inst["symbol"] in swiped,
-            "why": _explain(uvec, inst, content, basket_s, crowd_s),
+            "why": _explain(uvec, inst, content, crowd_s),
         })
 
     if not rows:
@@ -337,19 +279,11 @@ _POSITIVE_HIGH = {
 }
 
 
-def _explain(uvec: dict[str, float], inst: dict, content: float,
-             basket: float, crowd: float) -> str:
-    """
-    A specific, instrument-grounded reason for the recommendation. Names the
-    trait that aligns, ties it to a concrete property of THIS instrument (its
-    volatility band, 1-year move and reputation), and adds the crowd signal —
-    so the user understands exactly why this card surfaced (req #7).
-    """
+def _explain(uvec: dict[str, float], inst: dict, content: float, crowd: float) -> str:
     ivec = inst["trait_vector"]
-    # find the trait where user and instrument are both high and close
     best_trait, best_align = None, -1.0
     for t in TRAITS:
-        align = (uvec[t] * ivec[t])  # both-high alignment
+        align = uvec[t] * ivec[t]
         if t in _POSITIVE_HIGH and align > best_align:
             best_align, best_trait = align, t
 
@@ -360,7 +294,6 @@ def _explain(uvec: dict[str, float], inst: dict, content: float,
 
     parts = []
     if best_trait and best_align > 0.3:
-        # Tie the matched trait to a concrete instrument property.
         if best_trait in ("risk_tolerance", "greed", "confidence") and risk_band in ("high", "very high"):
             parts.append(f"its {risk_band}-risk profile speaks to your {_POSITIVE_HIGH[best_trait]}")
         elif best_trait in ("risk_aversion", "patience", "discipline") and risk_band in ("low", "very low"):
@@ -377,8 +310,6 @@ def _explain(uvec: dict[str, float], inst: dict, content: float,
 
     if crowd > 0.5:
         parts.append("a favourite among users who share your trader DNA")
-    elif basket > 0.4:
-        parts.append("popular with traders like you")
 
     if not parts:
         parts.append("a balanced fit for your overall profile")

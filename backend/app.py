@@ -348,19 +348,37 @@ def swipe(body: SwipeIn):
             detail="You've used all your swipes for today. Come back tomorrow!",
         )
 
-    state.swipes.append(recommender.Swipe(symbol=body.symbol, liked=body.liked))
+    now = time.time()
+    state.swipes.append(recommender.Swipe(symbol=body.symbol, liked=body.liked, ts=now))
+
+    # Persist the swipe's effect on the personality. effective_vector() folds the
+    # decayed swipe nudges onto the base vector; we snapshot that, promote it to
+    # the new base_vector and write it to the DB, so the personalization survives
+    # logout/login instead of living only in this process's memory. We then age
+    # the swipe list (its nudges are now baked into base) so the SAME nudges are
+    # not re-applied on top of the updated base on the next recompute — the
+    # swipes remain only as 'already seen' markers for deck filtering.
+    eff = state.effective_vector()
+    state.base_vector = eff
+    aged_ts = now - 7 * recommender.SWIPE_HALFLIFE_S
+    for s in state.swipes:
+        s.ts = aged_ts
+    near = recommender.nearest_personas(eff)
+    state.persona_id = near[0]["id"] if near else state.persona_id
+
     if state.user_id is not None:
         db.increment_swipe_count(state.user_id, _today())
         if body.liked:
             db.add_like(state.user_id, body.symbol)
         else:
             db.remove_like(state.user_id, body.symbol)
+        _persist_profile(state)
     return {
         "ok": True,
         "n_swipes": len(state.swipes),
         "swipes_remaining": _swipes_remaining(state),
-        "effective_vector": state.effective_vector(),
-        "personas": recommender.nearest_personas(state.effective_vector()),
+        "effective_vector": eff,
+        "personas": near,
     }
 
 
@@ -404,12 +422,26 @@ def watchlist_remove(body: WatchlistRemoveIn):
     state = _require_session(body.session_id)
     if state.user_id is not None:
         db.remove_like(state.user_id, body.symbol)
-    # Drop any liked swipe(s) for this symbol so the trait nudge is undone.
-    state.swipes = [s for s in state.swipes if not (s.symbol == body.symbol and s.liked)]
+
+    # The like's nudge is baked into the persisted base_vector, so it can't be
+    # undone just by dropping the in-memory swipe. Apply a reverse ('pass') nudge
+    # to walk the personality back, bake that into base, persist it, then drop all
+    # swipes for this symbol so it can resurface in Discover (reqs #10 & #15).
+    if body.symbol in recommender.INSTRUMENTS_BY_SYMBOL:
+        now = time.time()
+        state.swipes.append(recommender.Swipe(symbol=body.symbol, liked=False, ts=now))
+        state.base_vector = state.effective_vector()
+    state.swipes = [s for s in state.swipes if s.symbol != body.symbol]
+    aged_ts = time.time() - 7 * recommender.SWIPE_HALFLIFE_S
+    for s in state.swipes:
+        s.ts = aged_ts
+    near = recommender.nearest_personas(state.base_vector)
+    state.persona_id = near[0]["id"] if near else state.persona_id
+    _persist_profile(state)
     return {
         "ok": True,
         "effective_vector": state.effective_vector(),
-        "personas": recommender.nearest_personas(state.effective_vector()),
+        "personas": near,
     }
 
 

@@ -105,23 +105,12 @@ UNIVERSE: list[dict] = [
     {"symbol": "ADA-USD", "name": "Cardano", "asset_class": "crypto", "sector": "Crypto", "reputation": 0.5, "fallback": {"vol": 0.9, "ret": 0.1}},
     {"symbol": "AVAX-USD", "name": "Avalanche", "asset_class": "crypto", "sector": "Crypto", "reputation": 0.45, "fallback": {"vol": 1.0, "ret": 0.2}},
     {"symbol": "DOT-USD", "name": "Polkadot", "asset_class": "crypto", "sector": "Crypto", "reputation": 0.45, "fallback": {"vol": 0.9, "ret": -0.1}},
-    {"symbol": "MATIC-USD", "name": "Polygon", "asset_class": "crypto", "sector": "Crypto", "reputation": 0.42, "fallback": {"vol": 0.95, "ret": -0.15}},
+
     {"symbol": "LTC-USD", "name": "Litecoin", "asset_class": "crypto", "sector": "Crypto", "reputation": 0.5, "fallback": {"vol": 0.8, "ret": 0.05}},
     {"symbol": "LINK-USD", "name": "Chainlink", "asset_class": "crypto", "sector": "Crypto", "reputation": 0.48, "fallback": {"vol": 0.9, "ret": 0.25}},
     {"symbol": "BCH-USD", "name": "Bitcoin Cash", "asset_class": "crypto", "sector": "Crypto", "reputation": 0.45, "fallback": {"vol": 0.85, "ret": 0.3}},
     {"symbol": "SHIB-USD", "name": "Shiba Inu", "asset_class": "crypto", "sector": "Crypto", "reputation": 0.25, "fallback": {"vol": 1.2, "ret": -0.3}},
 
-    # --- CFDs (index / commodity / FX contracts-for-difference; demo data) ---
-    {"symbol": "US500", "name": "S&P 500 CFD", "asset_class": "cfd", "sector": "Index", "reputation": 0.8, "fallback": {"vol": 0.18, "ret": 0.12}},
-    {"symbol": "US100", "name": "Nasdaq 100 CFD", "asset_class": "cfd", "sector": "Index", "reputation": 0.78, "fallback": {"vol": 0.24, "ret": 0.18}},
-    {"symbol": "GER40", "name": "Germany 40 CFD", "asset_class": "cfd", "sector": "Index", "reputation": 0.72, "fallback": {"vol": 0.2, "ret": 0.1}},
-    {"symbol": "UK100", "name": "FTSE 100 CFD", "asset_class": "cfd", "sector": "Index", "reputation": 0.7, "fallback": {"vol": 0.17, "ret": 0.06}},
-    {"symbol": "JP225", "name": "Japan 225 CFD", "asset_class": "cfd", "sector": "Index", "reputation": 0.7, "fallback": {"vol": 0.2, "ret": 0.14}},
-    {"symbol": "XAUUSD", "name": "Gold CFD", "asset_class": "cfd", "sector": "Commodity", "reputation": 0.82, "fallback": {"vol": 0.15, "ret": 0.11}},
-    {"symbol": "XAGUSD", "name": "Silver CFD", "asset_class": "cfd", "sector": "Commodity", "reputation": 0.65, "fallback": {"vol": 0.3, "ret": 0.08}},
-    {"symbol": "USOIL", "name": "Crude Oil CFD", "asset_class": "cfd", "sector": "Commodity", "reputation": 0.6, "fallback": {"vol": 0.4, "ret": -0.05}},
-    {"symbol": "EURUSD", "name": "EUR/USD CFD", "asset_class": "cfd", "sector": "Forex", "reputation": 0.75, "fallback": {"vol": 0.09, "ret": 0.01}},
-    {"symbol": "GBPUSD", "name": "GBP/USD CFD", "asset_class": "cfd", "sector": "Forex", "reputation": 0.72, "fallback": {"vol": 0.11, "ret": 0.02}},
 ]
 
 
