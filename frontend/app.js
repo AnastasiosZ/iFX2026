@@ -112,11 +112,13 @@ async function doLogin() {
     });
     S.sessionId = res.session_id;
     S.username = res.username;
+    S.canReevaluate = res.can_reevaluate !== false;   // this account's own gate
     if (res.has_profile) {
       // Returning user — skip onboarding, go straight to the deck.
       S.personas = res.personas; S.vector = res.vector;
       await loadTabs();
       await loadDeck();
+      await fetchWatchlist();   // populate the watchlist badge before the tab is opened
       show("screen-deck");
       $("bottomnav").classList.remove("hidden");
     } else {
@@ -134,6 +136,7 @@ async function doLogout() {
   S.transcript = []; S.deck = []; S.likes = []; S.personas = []; S.seen = {};
   S.scenarioAnswers = {}; S.scenarioIdx = 0;
   S.watchlist = []; S.watchlistFilter = "all"; S.swipesRemaining = null; S._pendingQ = null;
+  S.canReevaluate = true;   // per-account gate — don't leak the last user's state
   $("like-count").textContent = "0";
   $("bottomnav").classList.add("hidden");
   $("login-username").value = ""; $("login-password").value = "";
@@ -174,10 +177,20 @@ async function nextQuiz() {
   } else {
     $("quiz-progress").style.width = "100%";
     // apply quiz answers to the logged-in user's profile
-    await api("/api/session", {
-      method: "POST",
-      body: JSON.stringify({ session_id: S.sessionId, answers: S.answers }),
-    });
+    try {
+      await api("/api/session", {
+        method: "POST",
+        body: JSON.stringify({ session_id: S.sessionId, answers: S.answers }),
+      });
+    } catch (e) {
+      // Server-side once-per-day gate (429) — bail back to the profile.
+      S.canReevaluate = false;
+      $("bottomnav").classList.remove("hidden");
+      alert("You can only re-evaluate your traits once per day. Come back tomorrow!");
+      show("screen-profile");
+      refreshProfile();
+      return;
+    }
     startInterview();
   }
 }
@@ -742,8 +755,10 @@ async function nextScenario() {
 }
 
 /* ---------------- watchlist ---------------- */
-async function loadWatchlist() {
-  show("screen-likes");
+// Pull the watchlist from the server and sync local state + the nav badge,
+// WITHOUT switching screens. Called at login so the count is right before the
+// user ever opens the tab, and by loadWatchlist() when they do.
+async function fetchWatchlist() {
   try {
     const res = await api(`/api/watchlist?session_id=${S.sessionId}`);
     S.watchlist = res.items || [];
@@ -752,6 +767,11 @@ async function loadWatchlist() {
   S.likes = S.watchlist.map((i) => ({ symbol:i.symbol, name:i.name, match:i.match, why:i.why }));
   S.watchlist.forEach((i) => { S.seen[i.symbol] = i; });
   updateLikeCount();
+}
+
+async function loadWatchlist() {
+  show("screen-likes");
+  await fetchWatchlist();
   renderWatchlistFilters();
   renderLikes();
 }
