@@ -168,6 +168,29 @@ def _persist_profile(state: recommender.UserState) -> None:
         db.update_user_profile(state.user_id, state.base_vector, state.persona_id)
 
 
+def _can_reevaluate(state: recommender.UserState) -> bool:
+    """Whether this user may run a full trait evaluation today (req #18).
+
+    The gate is per-user (keyed on the user's own ``last_eval_day`` row), so one
+    account using its daily slot never affects another. Anonymous/in-memory-only
+    states are always allowed. First-time onboarding is allowed because the
+    column is still NULL until the first interview finalizes.
+    """
+    if state.user_id is None:
+        return True
+    return db.get_last_eval_day(state.user_id) != _today()
+
+
+def _require_reeval_allowed(state: recommender.UserState) -> None:
+    """Reject a second same-day evaluation server-side, so the once-per-day rule
+    can't be bypassed by calling the API directly or from a stale client."""
+    if not _can_reevaluate(state):
+        raise HTTPException(
+            status_code=429,
+            detail="You can only re-evaluate your traits once per day. Come back tomorrow!",
+        )
+
+
 # ---------------------------------------------------------------- accounts
 @app.post("/api/auth/signup")
 def signup(body: SignupIn):
@@ -213,6 +236,7 @@ def login(body: LoginIn):
         "has_profile": has_profile,
         "vector": state.effective_vector(),
         "personas": recommender.nearest_personas(state.effective_vector()),
+        "can_reevaluate": _can_reevaluate(state),
     }
 
 
@@ -259,6 +283,9 @@ def asset_classes():
 def apply_questionnaire(body: SessionAnswers):
     """Apply onboarding quiz answers to the logged-in user's profile."""
     state = _require_session(body.session_id)
+    # Gate the re-eval at its first step so a blocked attempt can't partially
+    # overwrite the profile via the questionnaire before the interview fails.
+    _require_reeval_allowed(state)
     state.base_vector = score_answers(body.answers)
     _persist_profile(state)
     return {"session_id": body.session_id, "base_vector": state.base_vector}
@@ -274,6 +301,7 @@ def interview_next(session_id: str, turn: int = 0):
 @app.post("/api/interview")
 def submit_interview(body: InterviewSubmit):
     state = _require_session(body.session_id)
+    _require_reeval_allowed(state)
     result = interview.score_interview(body.transcript, state.base_vector)
     # Blend interview result over the questionnaire prior (interview gets more weight).
     blended = {}
@@ -457,9 +485,6 @@ def instrument(symbol: str):
 def profile(session_id: str):
     state = _require_session(session_id)
     eff = state.effective_vector()
-    can_reevaluate = True
-    if state.user_id is not None:
-        can_reevaluate = db.get_last_eval_day(state.user_id) != _today()
     return {
         "base_vector": state.base_vector,
         "effective_vector": eff,
@@ -468,7 +493,7 @@ def profile(session_id: str):
         "n_swipes": len(state.swipes),
         "swipes_remaining": _swipes_remaining(state),
         "daily_swipe_limit": DAILY_SWIPE_LIMIT,
-        "can_reevaluate": can_reevaluate,
+        "can_reevaluate": _can_reevaluate(state),
     }
 
 

@@ -223,9 +223,17 @@ button.primary:disabled { opacity: 0.5; }
 #like-count { background: var(--accent); color: #fff; border-radius: 999px; padding: 1px 7px; font-size: 11px; margin-left: 2px; }
 
 /* Modal — full phone width, edge to edge like the rest of the screens (#5) */
-#modal { position: absolute; inset: 0; background: rgba(0,0,0,0.7); display: grid; place-items: stretch; padding: 0; z-index: 50; }
+#modal { position: absolute; inset: 0; background: rgba(0,0,0,0.7); display: grid; place-items: stretch; padding: 0; z-index: 50; opacity: 0; transition: opacity 0.25s ease; }
 #modal.hidden { display: none; }
-.modal-card { background: var(--bg); border-radius: 0; width: 100%; height: 100%; max-height: 100%; overflow-y: auto; position: relative; padding-bottom: 24px; }
+/* Animate in/out: backdrop fades, card slides up from the bottom. The .show
+   class is toggled by app.js; on close we keep #modal in the DOM until the
+   transition finishes before re-applying .hidden. */
+#modal.show { opacity: 1; }
+.modal-card { background: var(--bg); border-radius: 0; width: 100%; height: 100%; max-height: 100%; overflow-y: auto; position: relative; padding-bottom: 24px; transform: translateY(100%); transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1); }
+#modal.show .modal-card { transform: translateY(0); }
+@media (prefers-reduced-motion: reduce) {
+  #modal, .modal-card { transition: none; }
+}
 #modal-close { position: absolute; top: 12px; right: 12px; background: var(--card2); border: none; color: var(--text); width: 32px; height: 32px; border-radius: 50%; cursor: pointer; z-index: 2; display: grid; place-items: center; line-height: 1; font-size: 14px; padding: 0; }
 
 .hidden { display: none !important; }
