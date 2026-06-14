@@ -361,11 +361,24 @@ function drawRadar(vec) {
     ctx.textAlign = cosA > 0.25 ? "left" : cosA < -0.25 ? "right" : "center";
     ctx.fillText(TRAIT_SHORT[TRAIT_ORDER[i]], lx, ly);
   }
-  // polygon
+  // polygon — gradient fill + glow so the "trader DNA" reads as data, not a blob
+  const pts = TRAIT_ORDER.map((t,i)=>{ const a=(i/n)*Math.PI*2 - Math.PI/2; const v=vec[t]??0.5; const r=R*v; return [cx+r*Math.cos(a), cy+r*Math.sin(a)]; });
   ctx.beginPath();
-  TRAIT_ORDER.forEach((t,i)=>{ const a=(i/n)*Math.PI*2 - Math.PI/2; const v=vec[t]??0.5; const r=R*v; const x=cx+r*Math.cos(a), y=cy+r*Math.sin(a); i?ctx.lineTo(x,y):ctx.moveTo(x,y);});
+  pts.forEach(([x,y],i)=> i?ctx.lineTo(x,y):ctx.moveTo(x,y));
   ctx.closePath();
-  ctx.fillStyle = "rgba(255,90,126,0.35)"; ctx.strokeStyle = "#ff5a7e"; ctx.lineWidth=2; ctx.fill(); ctx.stroke();
+  const grad = ctx.createRadialGradient(cx,cy,0,cx,cy,R);
+  grad.addColorStop(0, "rgba(108,92,231,0.45)");
+  grad.addColorStop(1, "rgba(255,90,126,0.30)");
+  ctx.fillStyle = grad;
+  ctx.save();
+  ctx.shadowColor = "rgba(255,90,126,0.55)"; ctx.shadowBlur = 14;
+  ctx.fill();
+  ctx.restore();
+  ctx.strokeStyle = "#ff5a7e"; ctx.lineWidth = 2; ctx.stroke();
+  // vertex dots
+  ctx.fillStyle = "#ff5a7e";
+  pts.forEach(([x,y])=>{ ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x,y,1.3,0,Math.PI*2); ctx.fillStyle="#fff"; ctx.fill(); ctx.fillStyle="#ff5a7e"; });
 }
 
 /* ---------------- deck ---------------- */
@@ -421,12 +434,20 @@ function renderDeck() {
   deck.innerHTML = "";
   if (swipesExhausted()) {
     $("swipe-controls").classList.add("hidden");   // remove the buttons entirely
-    deck.innerHTML = `<div class="deck-empty">⚡<br/>You're out of swipes for today.<br/>Come back tomorrow for a fresh batch of picks.</div>`;
+    deck.innerHTML = `<div class="deck-empty">
+      <div class="de-icon">⚡</div>
+      <div class="de-title">Out of swipes for today</div>
+      <div class="de-sub">Come back tomorrow for a fresh batch of picks tuned to your profile.</div>
+    </div>`;
     return;
   }
   $("swipe-controls").classList.remove("hidden");
   if (!S.deck.length) {
-    deck.innerHTML = `<div class="deck-empty">🎉<br/>You've seen every ${labelFor(S.activeClass)} pick.<br/>Try another tab or check your watchlist.</div>`;
+    deck.innerHTML = `<div class="deck-empty">
+      <div class="de-icon">🎉</div>
+      <div class="de-title">You've seen every ${labelFor(S.activeClass)} pick</div>
+      <div class="de-sub">Switch tabs above for another asset class, or review your watchlist.</div>
+    </div>`;
     return;
   }
   // render up to 3 stacked (top last so it's on top)
@@ -437,6 +458,11 @@ function renderDeck() {
     const depth = slice.length - 1 - idxFromBack;
     card.style.transform = `scale(${1 - depth*0.04}) translateY(${depth*10}px)`;
     card.style.zIndex = idxFromBack;
+    // Stagger the stack in; clear the helper class once it has played so it
+    // doesn't fight the drag transform later.
+    card.classList.add("enter");
+    card.style.animationDelay = `${depth * 0.05}s`;
+    card.addEventListener("animationend", () => card.classList.remove("enter"), { once: true });
     if (isTop) attachDrag(card, item);
     deck.appendChild(card);
   });
@@ -448,19 +474,24 @@ function buildCard(item) {
   const card = document.createElement("div");
   card.className = "card";
   card.dataset.symbol = item.symbol;
-  const ret = (item.period_return*100).toFixed(1);
+  const retPct = item.period_return * 100;
+  const ret = retPct.toFixed(1);
   const retCls = item.period_return >= 0 ? "pos" : "neg";
   card.innerHTML = `
     <div class="stamp like">LIKE</div>
     <div class="stamp nope">NOPE</div>
     <div class="card-top">
-      <div>
-        <div class="sym">${item.symbol}</div>
+      <div class="ct-main">
+        <div class="sym-row">
+          <div class="sym">${item.symbol}</div>
+        </div>
         <div class="nm">${item.name} · ${item.sector}</div>
-        <div class="match-pill">${item.match}% match</div>
       </div>
-      <div class="klass">${item.asset_class}</div>
+      <div class="match-ring" style="--p:${item.match}">
+        <span><span class="mr-num">${item.match}</span><span class="mr-lbl">match</span></span>
+      </div>
     </div>
+    <div class="tags">${tagRow(item)}</div>
     <div class="why">“${item.why}”</div>
     <div class="spark">${sparkSVG(item.sparkline, item.period_return)}</div>
     <div class="ret">1y change: <span class="${retCls}">${ret>=0?"+":""}${ret}%</span> ${item.data_source==="fallback"?"· demo data":""}</div>
@@ -471,6 +502,19 @@ function buildCard(item) {
     </div>
     <div class="desc">${item.description}</div>`;
   return card;
+}
+
+// Fast-scan tags derived purely from data the card already has.
+const KLASS_TAG = { stock:"Stock", etf:"ETF", bond:"Bond", crypto:"Crypto", cfd:"CFD" };
+function tagRow(item) {
+  const tags = [`<span class="tag t-class">${KLASS_TAG[item.asset_class] || item.asset_class}</span>`];
+  const vol = item.scores?.volatility ?? 50;
+  if (vol >= 60) tags.push(`<span class="tag t-vol-hi">High volatility</span>`);
+  else if (vol <= 35) tags.push(`<span class="tag t-vol-lo">Low volatility</span>`);
+  const rp = item.period_return * 100;
+  const cls = rp >= 0 ? "t-ret-pos" : "t-ret-neg";
+  tags.push(`<span class="tag ${cls}">${rp >= 0 ? "▲" : "▼"} ${rp >= 0 ? "+" : ""}${rp.toFixed(0)}% 1y</span>`);
+  return tags.join("");
 }
 
 function sliderRow(label, val, cls) {
@@ -492,10 +536,16 @@ function sparkSVG(points, ret) {
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   });
   const color = ret >= 0 ? "#2ecc71" : "#ff5a7e";
+  // Unique gradient id per render so multiple sparks on screen don't collide.
+  const gid = `spk${Math.random().toString(36).slice(2, 8)}`;
   const area = `M${coords[0]} L${coords.join(" L")} L${pad+(points.length-1)*stepX},${h} L${pad},${h} Z`;
   return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" preserveAspectRatio="none">
-    <path d="${area}" fill="${color}" opacity="0.12"/>
-    <polyline points="${coords.join(" ")}" fill="none" stroke="${color}" stroke-width="2"/>
+    <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${color}" stop-opacity="0.32"/>
+      <stop offset="1" stop-color="${color}" stop-opacity="0"/>
+    </linearGradient></defs>
+    <path d="${area}" fill="url(#${gid})"/>
+    <polyline points="${coords.join(" ")}" fill="none" stroke="${color}" stroke-width="2.5"/>
   </svg>`;
 }
 
@@ -507,12 +557,18 @@ function attachDrag(card) {
   const onStart=(x,y)=>{ dragging=true; startX=x; startY=y; card.style.transition="none"; };
   const onMove=(x,y)=>{ if(!dragging) return; dx=x-startX; dy=y-startY;
     card.style.transform=`translate(${dx}px,${dy}px) rotate(${dx*0.06}deg)`;
-    card.querySelector(".stamp.like").style.opacity = Math.max(0, Math.min(1, dx/100));
-    card.querySelector(".stamp.nope").style.opacity = Math.max(0, Math.min(1, -dx/100));
+    const like = Math.max(0, Math.min(1, dx/100));
+    const nope = Math.max(0, Math.min(1, -dx/100));
+    card.querySelector(".stamp.like").style.opacity = like;
+    card.querySelector(".stamp.nope").style.opacity = nope;
+    // Same drag signal drives a green/pink border + glow on the card itself.
+    card.classList.toggle("swiping-like", like > 0.15);
+    card.classList.toggle("swiping-nope", nope > 0.15);
   };
   const onEnd=()=>{ if(!dragging) return; dragging=false; card.style.transition="transform 0.3s ease";
     if (Math.abs(dx)>110){ flyOut(card, dx>0); swipeTop(dx>0, true); }
-    else { card.style.transform=""; card.querySelectorAll(".stamp").forEach(s=>s.style.opacity=0); }
+    else { card.style.transform=""; card.querySelectorAll(".stamp").forEach(s=>s.style.opacity=0);
+      card.classList.remove("swiping-like","swiping-nope"); }
     dx=0; dy=0;
   };
   card.addEventListener("mousedown",(e)=>onStart(e.clientX,e.clientY));
@@ -600,7 +656,7 @@ async function openModal(symbol) {
 
   $("modal-body").innerHTML = `
     <div class="card-top" style="border-radius:0">
-      <div><h2 class="inst-name">${inst.name}</h2><div class="nm">${inst.symbol} · ${inst.sector}</div></div>
+      <div class="ct-main"><h2 class="inst-name">${inst.name}</h2><div class="nm">${inst.symbol} · ${inst.sector}</div></div>
       <div class="klass">${inst.asset_class}</div>
     </div>
     <div class="chart-wrap">

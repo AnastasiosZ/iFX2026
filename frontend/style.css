@@ -134,15 +134,57 @@ button.primary:disabled { opacity: 0.5; }
   box-shadow: 0 10px 40px rgba(0,0,0,0.4); will-change: transform;
   border: 1px solid #ffffff10;
 }
+/* Thin gradient accent across the top of every card. */
+.card::before {
+  content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; z-index: 2;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+}
+/* Live swipe feedback: the top card's border + glow shift toward like/nope as
+   it is dragged. JS toggles these classes from the same value as the stamps. */
+.card.swiping-like { border-color: rgba(46,204,113,0.7); box-shadow: 0 10px 40px rgba(0,0,0,0.4), 0 0 28px rgba(46,204,113,0.35); }
+.card.swiping-nope { border-color: rgba(255,90,126,0.7); box-shadow: 0 10px 40px rgba(0,0,0,0.4), 0 0 28px rgba(255,90,126,0.35); }
+/* Stagger the stacked cards in when a deck (re)renders. */
+@keyframes cardIn { from { transform: translateY(14px) scale(0.97); opacity: 0; } to { opacity: 1; } }
+.card.enter { animation: cardIn 0.28s cubic-bezier(0.16,1,0.3,1) both; }
 .card .card-top {
   padding: 18px 18px 10px; display: flex; justify-content: space-between; align-items: flex-start;
-  background: linear-gradient(180deg, var(--card2), var(--card));
+  gap: 12px; background: linear-gradient(180deg, var(--card2), var(--card));
 }
+/* Left text column must be allowed to shrink (default min-width:auto refuses to),
+   otherwise a wide ticker like GOOGL pushes the match ring past the card edge. */
+.card .ct-main { min-width: 0; }
 .card .sym { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; }
-.card .nm { color: var(--muted); font-size: 14px; margin-top: 2px; }
+.card .sym-row { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.card .sym-row .sym { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card .nm { color: var(--muted); font-size: 14px; margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .card .klass { font-size: 11px; text-transform: uppercase; background: var(--accent2); padding: 4px 9px; border-radius: 999px; letter-spacing: 0.5px; }
-.card .match-pill { font-size: 13px; font-weight: 800; color: var(--green); margin-top: 6px; }
-.card .why { font-size: 13px; color: #cfd2ee; padding: 0 18px 6px; font-style: italic; }
+
+/* Match ring — the card's hero stat (reuses the persona ring idea). */
+.match-ring {
+  --p: 0; position: relative; flex: 0 0 56px; width: 56px; height: 56px; border-radius: 50%;
+  background: conic-gradient(var(--green) calc(var(--p) * 1%), var(--card2) 0);
+}
+.match-ring > span {
+  position: absolute; inset: 4px; border-radius: 50%; background: var(--card);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+}
+.match-ring .mr-num { font-size: 16px; font-weight: 800; color: var(--green); line-height: 1; }
+.match-ring .mr-lbl { font-size: 8px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
+
+/* Tag row under the header — fast-scan signals (asset class, volatility, return). */
+.card .tags { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 18px 10px; }
+.tag {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 700;
+  padding: 3px 9px; border-radius: 999px; display: inline-flex; align-items: center; gap: 4px;
+}
+.tag.t-class { background: rgba(108,92,231,0.18); color: #b9aef5; }
+.tag.t-vol-hi { background: rgba(255,90,126,0.16); color: #ff9bb3; }
+.tag.t-vol-lo { background: rgba(84,160,255,0.16); color: #9ec8ff; }
+.tag.t-ret-pos { background: rgba(46,204,113,0.16); color: #7fe6ad; }
+.tag.t-ret-neg { background: rgba(255,90,126,0.16); color: #ff9bb3; }
+
+.card .why { font-size: 13px; color: #cfd2ee; margin: 0 18px 8px; padding: 9px 12px; font-style: italic;
+  background: rgba(108,92,231,0.1); border-left: 2px solid var(--accent2); border-radius: 0 8px 8px 0; line-height: 1.4; }
 .spark { padding: 6px 10px; }
 .card .sliders { padding: 8px 18px 14px; display: flex; flex-direction: column; gap: 12px; }
 .slider-row .lbl { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
@@ -162,16 +204,21 @@ button.primary:disabled { opacity: 0.5; }
 .stamp.like { right: 22px; color: var(--green); border-color: var(--green); }
 .stamp.nope { left: 22px; color: var(--accent); border-color: var(--accent); transform: rotate(18deg); }
 
-.deck-empty { display: grid; place-items: center; height: 100%; color: var(--muted); text-align: center; padding: 20px; }
+.deck-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; height: 100%; color: var(--muted); text-align: center; padding: 20px; }
+.deck-empty .de-icon { font-size: 54px; line-height: 1; margin-bottom: 6px; }
+.deck-empty .de-title { font-size: 17px; font-weight: 700; color: var(--text); }
+.deck-empty .de-sub { font-size: 14px; color: var(--muted); max-width: 240px; line-height: 1.45; }
 
 /* Swipe controls */
 #swipe-controls { display: flex; justify-content: center; gap: 22px; padding: 16px 0 6px; flex: 0 0 auto; }
 .circle {
   width: 60px; height: 60px; border-radius: 50%; border: none; font-size: 24px;
-  cursor: pointer; display: grid; place-items: center; transition: transform 0.1s;
+  cursor: pointer; display: grid; place-items: center;
+  transition: transform 0.18s cubic-bezier(0.18,0.89,0.32,1.28);
   box-shadow: 0 6px 18px rgba(0,0,0,0.35); font-weight: 700;
 }
-.circle:active { transform: scale(0.9); }
+.circle:hover { transform: scale(1.08); }
+.circle:active { transform: scale(0.88); }
 .circle.pass { background: #fff; color: var(--accent); }
 .circle.like { background: var(--green); color: #fff; }
 .circle.info { background: var(--card2); color: var(--text); width: 50px; height: 50px; align-self: center; font-size: 20px; }
@@ -239,9 +286,9 @@ button.primary:disabled { opacity: 0.5; }
 .hidden { display: none !important; }
 
 .secondary {
-  background: transparent;
-  border: 2px solid #fff;
-  color: #fff;
+  background: rgba(255,255,255,0.04);
+  border: 1.5px solid #ffffff2e;
+  color: var(--text);
   border-radius: 999px;
   padding: 13px 28px;
   font-size: 16px;
@@ -249,18 +296,25 @@ button.primary:disabled { opacity: 0.5; }
   width: 100%;
   cursor: pointer;
   margin-top: 10px;
-  transition: opacity 0.2s;
+  transition: background 0.2s, border-color 0.2s;
 }
+.secondary:hover { background: rgba(255,255,255,0.08); border-color: #ffffff4d; }
 
 .text-input {
   width: 100%;
-  padding: 12px;
+  padding: 13px 14px;
   margin: 8px 0;
-  border-radius: 8px;
-  border: none;
+  border-radius: 10px;
+  border: 1.5px solid transparent;
+  background: var(--card2);
+  color: var(--text);
   font-size: 1rem;
   box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.15s;
 }
+.text-input::placeholder { color: var(--muted); }
+.text-input:focus { border-color: var(--accent); }
 
 .link-btn {
   background: none;
@@ -315,7 +369,10 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 
 /* Detail (info) modal: instrument name as the heading (req #5) and consistent
    left/right side margins for all sections (req #4). */
-.modal-card .inst-name { font-size: 24px; font-weight: 800; letter-spacing: -0.4px; line-height: 1.2; }
+.modal-card .inst-name { font-size: 24px; font-weight: 800; letter-spacing: -0.4px; line-height: 1.2; overflow-wrap: anywhere; }
+/* In the modal the heading has room to wrap; the asset-class pill must not shrink. */
+.modal-card .card-top .ct-main .nm { white-space: normal; }
+.modal-card .card-top .klass { flex: 0 0 auto; }
 .modal-card .card-top,
 .modal-card .sliders,
 .modal-card .desc,
