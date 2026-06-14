@@ -56,7 +56,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   $("back-to-deck").onclick = () => show("screen-deck");
   $("chat-send").onclick = sendChat;
   $("chat-input").addEventListener("keydown", (e) => { if (e.key === "Enter") sendChat(); });
-  $("modal-close").onclick = () => $("modal").classList.add("hidden");
+  $("modal-close").onclick = closeModal;
   $("btn-like").onclick = () => swipeTop(true);
   $("btn-pass").onclick = () => swipeTop(false);
   $("btn-info").onclick = () => { const t = topCard(); if (t) openModal(t.dataset.symbol); };
@@ -619,8 +619,20 @@ async function openModal(symbol) {
     <div class="desc">${inst.description}</div>
     ${whyHtml}
     <p class="disclaimer compliance">Educational content only — not investment advice. Finter does not execute trades or hold funds.</p>`;
-  $("modal").classList.remove("hidden");
+  const modal = $("modal");
+  modal.classList.remove("hidden");
+  void modal.offsetWidth;          // force reflow so the slide-up runs from the hidden state
+  modal.classList.add("show");
   setupChart(inst.sparkline, inst.period_return);
+}
+
+function closeModal() {
+  const modal = $("modal");
+  modal.classList.remove("show");  // play the fade/slide-out…
+  // …then remove from layout once it finishes (guard against a quick reopen).
+  setTimeout(() => {
+    if (!modal.classList.contains("show")) modal.classList.add("hidden");
+  }, 320);
 }
 
 /* Interactive price chart: hover/drag to read prices, switch time ranges (#6). */
