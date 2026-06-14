@@ -2,11 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project: Finter (Fintech + Tinder)
+## Project: Finter
 
 A 24-hour hackathon project for **iFX HACK** (Trading & Fintech Hackathon, Cyprus 2026 — https://cyprus2026.ifxexpo.com/hack/).
 
-**Core idea:** A mobile app that builds a *personality vector* for each user (via multiple-choice questions + a short AI-agent interview), then surfaces investment options (stocks, options, bonds, CFDs) with **personalized recommendations driven by what similar-personality traders chose**. Each instrument has a description, slider ratings (stability / volatility / reputation), and price history. A "Tinder-style" swipe UX is the product hook.
+**Core idea:** A mobile app that builds a *personality vector* for each user (via multiple-choice questions + a short AI-agent interview), then surfaces investment options (stocks, options, bonds, CFDs) with **personalized recommendations driven by what similar-personality traders chose**. Each instrument has a description, slider ratings (stability / volatility / reputation), and price history. A swipe-based UX is the product hook.
 
 **Judging priority (from NOTES.MD):** *Functionality is the most important; originality/cleverness is not.* Build something that demonstrably works end-to-end. Open-source solutions are explicitly allowed.
 

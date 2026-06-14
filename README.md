@@ -1,4 +1,4 @@
-# 🔥 Finter — Fintech meets Tinder
+# 🔥 Finter — Personality-driven investing
 
 Swipe your way to investments that match **who you are**.
 

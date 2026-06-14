@@ -1,6 +1,6 @@
 # Finter — Technical Analysis & Design Rationale
 
-How the "Fintech + Tinder" concept was turned into a working, end-to-end,
+How the personality-driven investing concept was turned into a working, end-to-end,
 demo-safe application in a single build session — and *why* each decision was
 made the way it was.
 
@@ -217,7 +217,7 @@ The FastAPI app ([`app.py`](backend/app.py)) exposes the flow as REST
 
 The frontend ([`frontend/`](frontend/)) is **single-file vanilla JS — no build
 step, no npm** — a deliberate choice to eliminate tooling risk and run on any
-judge's laptop or phone browser. It implements the full Tinder-style flow:
+judge's laptop or phone browser. It implements the full flow:
 welcome → quiz → AI chat interview → an animated **"trader DNA" radar chart** +
 persona match cards → a **swipeable card deck** (touch/mouse drag with LIKE/NOPE
 stamps) showing price sparklines and slider ratings → watchlist. Charts are
