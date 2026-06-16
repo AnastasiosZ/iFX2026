@@ -11,9 +11,11 @@ env/
 # Generated data cache (rebuilt via `python -m backend.build_instruments`)
 data/instruments.json
 
-# Local SQLite database (users/likes/recommendations; reseeded on first run)
-data/finter.db
-data/finter.db-*
+# Local SQLite database is committed so the seeded demo users/likes ship with the
+# repo. Its transient WAL/shared-memory sidecars are runtime-only — never commit them.
+data/finter.db-wal
+data/finter.db-shm
+data/finter.db-journal
 
 # Editor / OS
 .DS_Store
