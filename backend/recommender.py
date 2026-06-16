@@ -16,6 +16,7 @@ every card carries an explainable 'why'.
 
 from __future__ import annotations
 
+import hashlib
 import math
 import time
 from dataclasses import dataclass, field
@@ -182,7 +183,8 @@ RECOMMEND_SOFTMAX_TAU = 0.05
 _rng = np.random.default_rng()
 
 
-def _sample_order(logits: np.ndarray, tau: float) -> np.ndarray:
+def _sample_order(logits: np.ndarray, tau: float,
+                  rng: np.random.Generator | None = None) -> np.ndarray:
     """
     Sample an ordering of items (best-first) from softmax(logits / tau) WITHOUT
     replacement, via the Gumbel-top-k trick: perturb each logit with i.i.d.
@@ -190,7 +192,12 @@ def _sample_order(logits: np.ndarray, tau: float) -> np.ndarray:
     sequential Plackett-Luce sampling from the softmax, so the lead card is drawn
     proportional to its softmax probability and so on down the deck. With tau<=0
     (or no items) it degenerates to a deterministic argsort by logit.
+
+    ``rng`` lets the caller pass a *seeded* generator so the same inputs yield the
+    same ordering (used to keep a user's deck stable across refetches — see
+    ``recommend``); when omitted it falls back to the process-wide RNG.
     """
+    rng = rng if rng is not None else _rng
     n = len(logits)
     if n == 0:
         return np.empty(0, dtype=int)
@@ -199,9 +206,27 @@ def _sample_order(logits: np.ndarray, tau: float) -> np.ndarray:
     z = logits / tau
     z = z - z.max()  # softmax is shift-invariant; subtract max for stability
     # Gumbel(0,1) = -log(-log(U)); the epsilons guard against log(0).
-    u = _rng.random(n)
+    u = rng.random(n)
     gumbel = -np.log(-np.log(u + 1e-12) + 1e-12)
     return np.argsort(-(z + gumbel))
+
+
+def _deck_rng(user: "UserState", asset_class: str | None) -> np.random.Generator:
+    """
+    A generator seeded deterministically from the user's identity and the asset
+    class, so repeated ``recommend`` calls return the SAME deck ordering until
+    something real changes (a swipe shifts the effective vector and removes the
+    swiped card). This closes the "flip tabs to reshuffle" exploit: switching
+    asset class and back no longer hands out a fresh batch of recommendations
+    without spending a swipe.
+
+    Logged-in users key on their stable ``user_id``; anonymous sessions fall back
+    to the in-memory state's object id, which is stable for the session's life.
+    """
+    ident = user.user_id if user.user_id is not None else id(user)
+    key = f"{ident}|{asset_class or 'all'}".encode()
+    seed = int.from_bytes(hashlib.blake2b(key, digest_size=8).digest(), "big")
+    return np.random.default_rng(seed)
 
 
 def _normalize_counts(counts: dict[str, int]) -> dict[str, float]:
@@ -260,10 +285,15 @@ def recommend(user: UserState, asset_class: str | None = None, limit: int = 20,
         return []
     # Don't just return the top-`limit` by match: sample the deck from a
     # low-temperature softmax over cosine similarity (the content logit), so the
-    # ordering is personalized but stochastic — strong matches lead most of the
-    # time, weaker ones surface occasionally, and the deck varies between visits.
+    # ordering is personalized but not a frozen argsort — strong matches lead most
+    # of the time, weaker ones surface occasionally. The sampler is seeded
+    # deterministically per (user, asset_class) so the ordering is STABLE across
+    # refetches: flipping to another tab and back returns the same deck instead of
+    # a freshly shuffled one (which had let users farm unlimited recommendations
+    # without spending a swipe). A swipe legitimately advances the deck — it both
+    # removes the card and nudges the effective vector, changing the logits.
     logits = np.array([r["_cosine"] for r in rows], dtype=float)
-    order = _sample_order(logits, RECOMMEND_SOFTMAX_TAU)
+    order = _sample_order(logits, RECOMMEND_SOFTMAX_TAU, rng=_deck_rng(user, asset_class))
     return [rows[i] for i in order[:limit]]
 
 

@@ -52,8 +52,18 @@ body { width: 100%; }
 .screen.active { display: flex; flex-direction: column; }
 
 /* Welcome */
+/* Sits as a fixed-height flex item ABOVE .hero (which auto-margin-centers in
+   the remaining space). That keeps the logo pinned at the same spot on every
+   screen that uses it, regardless of how much content .hero holds below it
+   (e.g. the welcome screen's step list vs. the signup form). */
+.logo-anchor {
+  flex: 0 0 auto; display: flex; justify-content: center;
+  padding-top: 56px;
+}
+.logo-anchor img { height: 160px; width: auto; display: block; }
+
 .hero { margin: auto 0; text-align: center; }
-.logo-big { font-size: 64px; }
+.logo-big { font-size: 64px; line-height: 0; }
 .hero h1 { font-size: 40px; margin: 8px 0; letter-spacing: -1px; }
 .tag { color: var(--muted); font-size: 16px; margin-bottom: 28px; }
 .tag em { color: var(--accent); font-style: normal; }
