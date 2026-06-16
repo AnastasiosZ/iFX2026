@@ -339,6 +339,7 @@ button.primary:disabled { opacity: 0.5; }
 #screen-scenarios h2 { margin: 10px 0 6px; }
 .sub { color: var(--muted); font-size: 13px; margin-bottom: 16px; line-height: 1.4; }
 #scenario-done { text-align: center; margin: auto 0; }
+#scenario-done .logo-big { line-height: 1; margin-bottom: 12px; }
 #scenario-done p { color: var(--text); font-size: 16px; margin: 12px 0 24px; }
 
 /* Modal: why / metadata / strategy sections */
