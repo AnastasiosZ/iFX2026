@@ -1,5 +1,7 @@
 # 🔥 Finter — Personality-driven investing
 
+<img width="640" height="360" alt="demo" src="https://github.com/user-attachments/assets/0662138b-cd99-4089-aaaf-4534ec6ff33f" />
+
 Swipe your way to investments that match **who you are**.
 
 Finter builds a 10-dimensional *personality vector* for each user from a quick
